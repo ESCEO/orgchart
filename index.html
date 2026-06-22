@@ -365,7 +365,7 @@
                 </div>
 
                 <!-- Movable & Minimizable Floating Org Chart Navigation Panel -->
-                <div id="org-chart-navigation" class="absolute z-20 select-none" style="bottom: 24px; left: 24px;">
+                <div id="org-chart-navigation" class="absolute z-20 select-none" style="top: 24px; left: 24px;">
                     <!-- Minimized State (? in a small circle) -->
                     <button id="nav-minimized" onclick="toggleNavState(false)" class="hidden w-11 h-11 rounded-full bg-white hover:bg-slate-50 text-escblue border border-slate-200 shadow-xl flex items-center justify-center font-bold cursor-grab active:cursor-grabbing focus:outline-none transition-all duration-150" title="Open Org Chart Navigation">
                         <i class="fa-solid fa-question text-base pointer-events-none"></i>
@@ -808,12 +808,20 @@
         }
 
         function resetZoomAndPan() {
-            state.zoom = 1.0;
-            state.pan = { x: 0, y: 0 };
-            updateCanvasTransform();
+            const { roots } = getHierarchyMaps();
+            if (roots.length > 0 && state.viewMode === 'tree') {
+                zoomToNode(roots[0].id, true); // alignTop = true
+            } else {
+                state.zoom = 1.0;
+                state.pan = { x: 0, y: 0 };
+                updateCanvasTransform();
+            }
         }
 
-        function zoomToNode(nodeId) {
+        /**
+         * Smoothly focus and zoom centered horizontally, optionally alignment to top center
+         */
+        function zoomToNode(nodeId, alignTop = false) {
             const workspace = document.getElementById('canvas-workspace');
             const mover = document.getElementById('canvas-mover');
             const el = document.getElementById(`node-card-${nodeId}`);
@@ -825,13 +833,20 @@
             const moverRect = mover.getBoundingClientRect();
             const elRect = el.getBoundingClientRect();
             
-            const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
-            const localY = (elRect.top + elRect.height / 2 - moverRect.top) / state.zoom;
-            
+            // Standard reading zoom scale reset
             state.zoom = 1.0;
             
+            const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
             state.pan.x = (viewRect.width / 2) - (localX * state.zoom);
-            state.pan.y = (viewRect.height / 2) - (localY * state.zoom);
+            
+            if (alignTop) {
+                // Pin the top edge of the node element exactly 40px down from viewport top boundary
+                const localYTop = (elRect.top - moverRect.top) / state.zoom;
+                state.pan.y = 40 - (localYTop * state.zoom);
+            } else {
+                const localYCenter = (elRect.top + elRect.height / 2 - moverRect.top) / state.zoom;
+                state.pan.y = (viewRect.height / 2) - (localYCenter * state.zoom);
+            }
             
             updateCanvasTransform();
         }
@@ -1415,14 +1430,14 @@
                 closeCacheWarningModal();
                 renderApp();
 
-                // Center visual camera directly on the top-level root supervisor
+                // Center visual camera directly on the top-level root supervisor at the top-center
                 const { roots } = getHierarchyMaps();
                 if (roots.length > 0) {
                     const topLevelPersonId = roots[0].id;
                     state.selectedId = topLevelPersonId;
                     renderApp(); 
                     setTimeout(() => {
-                        zoomToNode(topLevelPersonId);
+                        zoomToNode(topLevelPersonId, true); // true aligns it beautifully at the top-center
                     }, 350); 
                 }
             } catch (err) {
