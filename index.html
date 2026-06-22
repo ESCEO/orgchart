@@ -346,6 +346,10 @@
 
                 <!-- Floating Canvas View Controls Bar -->
                 <div id="canvas-controls" class="absolute bottom-6 right-6 flex items-center space-x-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200">
+                    <button onclick="toggleNavigationTutorial()" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Org Chart Guide">
+                        <i class="fa-solid fa-circle-question text-sm"></i>
+                    </button>
+                    <span class="text-slate-300">|</span>
                     <button onclick="adjustZoom(0.1)" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom In">
                         <i class="fa-solid fa-plus text-sm"></i>
                     </button>
@@ -361,10 +365,15 @@
                 </div>
 
                 <!-- Floating Tutorial Box Info Card -->
-                <div class="absolute bottom-6 left-6 hidden lg:block bg-white/90 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200 max-w-xs">
-                    <h4 class="text-xs font-bold text-navy mb-1 flex items-center">
-                        <i class="fa-solid fa-circle-info text-escblue mr-1.5"></i> Canvas Navigation
-                    </h4>
+                <div id="tutorial-box" class="absolute bottom-6 left-6 hidden lg:block bg-white/90 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200 max-w-xs z-20 animate-fade-in">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <h4 class="text-xs font-bold text-navy flex items-center">
+                            <i class="fa-solid fa-circle-info text-escblue mr-1.5"></i> Org Chart Navigation
+                        </h4>
+                        <button onclick="closeNavigationTutorial()" class="text-lightgray hover:text-medgray p-1 transition-colors rounded hover:bg-slate-100" title="Dismiss Guide">
+                            <i class="fa-solid fa-xmark text-xs leading-none"></i>
+                        </button>
+                    </div>
                     <ul class="text-[10px] text-medgray space-y-1 list-disc pl-4">
                         <li>Left-click and hold anywhere on the canvas background to Pan/Drag the layout map.</li>
                         <li>Click the expandable arrow buttons below the nodes to toggle visual reports branches.</li>
@@ -374,14 +383,13 @@
         </main>
     </div>
 
-    <!-- Professional Footer Bar -->
-    <footer class="bg-white border-t border-slate-200/80 px-6 py-2.5 flex flex-col sm:flex-row justify-between items-center z-20 text-[10px] text-lightgray font-medium shrink-0 space-y-1.5 sm:space-y-0 shadow-sm">
-        <div class="flex items-center space-x-1">
+    <!-- Interactive Sticky Footer Area -->
+    <footer class="bg-white border-t border-slate-200 px-6 py-3.5 flex justify-between items-center text-xs text-lightgray z-20 shrink-0">
+        <div>
             <span>&copy; 2026 Educational Service Center of Eastern Ohio. All rights reserved.</span>
         </div>
-        <div class="flex items-center space-x-1">
-            <span class="italic">powered by </span>
-            <span class="font-semibold text-slate-500">ESCEO Technology</span>
+        <div class="text-right">
+            <span><i>powered by</i> <strong class="text-escgray font-semibold">ESCEO Technology</strong></span>
         </div>
     </footer>
 
@@ -447,7 +455,7 @@
         // HARDCODED DATABASE ENDPOINT URL
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2KRBGym05tdr2yk__Lhsb63FoVddLnVch6UNiMbhqGo7xN6bcWGLOq8DFXMRVN7-MqFIQCBhh1UU8/pub?output=csv";
 
-        // Preloaded complete workforce cache (Used purely as a fallback placeholder dataset)
+        // Preloaded complete backup directory to run during network failures
         const INITIAL_WORKFORCE = [
             { id: "Sarah Jenkins", name: "Sarah Jenkins", role: "Chief Executive Officer", supervisor: "", department: "Executive", email: "c2FyYWguamVua2luc0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0101", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" },
             { id: "Michael Chang", name: "Michael Chang", role: "VP of Engineering", supervisor: "Sarah Jenkins", department: "Engineering", email: "bWljaGFlbC5jaGFuZ0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0102", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
@@ -463,7 +471,7 @@
 
         // Core Application State Managers
         const state = {
-            people: [...INITIAL_WORKFORCE],
+            people: [],
             collapsed: {}, // Empty means all expanded by default
             searchQuery: "",
             selectedId: null,
@@ -560,7 +568,8 @@
         }
 
         /**
-         * Converts standard Google Drive file links to raw direct rendering image URLs
+         * Converts standard Google Drive file links to high-performance, CORS-friendly direct rendering URLs.
+         * Bypasses the 403 Forbidden errors commonly caused on production domains like GitHub Pages.
          */
         function convertGoogleDriveUrl(url) {
             if (!url) return '';
@@ -572,7 +581,9 @@
             const match = trimmed.match(idRegex);
             if (match && match[1]) {
                 const fileId = match[1];
-                return `https://lh3.googleusercontent.com/d/${fileId}`;
+                // Google Drive's thumbnail API is fully supported on public origins (like GitHub Pages)
+                // We request a 500px wide image ('&sz=w500') to balance premium visual clarity and fast loading.
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
             }
             return trimmed;
         }
@@ -688,9 +699,8 @@
                     const matchesName = p.name.toLowerCase().includes(state.searchQuery);
                     const matchesDept = p.department.toLowerCase().includes(state.searchQuery);
                     const matchesRole = p.role && p.role.toLowerCase().includes(state.searchQuery);
-                    const matchesPhone = p.phoneNumber && p.phoneNumber.toLowerCase().includes(state.searchQuery);
                     
-                    if (matchesName || matchesDept || matchesRole || matchesPhone) {
+                    if (matchesName || matchesDept || matchesRole) {
                         ensureNodeIsVisible(p.id);
                         if (!firstMatchId) {
                             firstMatchId = p.id;
@@ -738,8 +748,7 @@
             const isMatched = state.searchQuery && (
                 node.name.toLowerCase().includes(state.searchQuery) ||
                 node.department.toLowerCase().includes(state.searchQuery) ||
-                (node.role && node.role.toLowerCase().includes(state.searchQuery)) ||
-                (node.phoneNumber && node.phoneNumber.toLowerCase().includes(state.searchQuery))
+                (node.role && node.role.toLowerCase().includes(state.searchQuery))
             );
             const isSelected = state.selectedId === node.id;
 
@@ -872,8 +881,7 @@
                     const matchesName = p.name.toLowerCase().includes(state.searchQuery);
                     const matchesDept = p.department.toLowerCase().includes(state.searchQuery);
                     const matchesRole = p.role && p.role.toLowerCase().includes(state.searchQuery);
-                    const matchesPhone = p.phoneNumber && p.phoneNumber.toLowerCase().includes(state.searchQuery);
-                    return matchesName || matchesDept || matchesRole || matchesPhone;
+                    return matchesName || matchesDept || matchesRole;
                 });
 
                 document.getElementById('directory-total-badge').innerText = `Showing ${matches.length} of ${state.people.length} employees`;
@@ -1238,7 +1246,6 @@
                 state.people = parsed;
                 state.collapsed = {}; // Force all nodes to be fully expanded
 
-                // Set database status to Active
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-emerald-600 uppercase flex items-center space-x-1";
                     badge.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Active</span>`;
@@ -1254,13 +1261,12 @@
                 if (roots.length > 0) {
                     const topLevelPersonId = roots[0].id;
                     state.selectedId = topLevelPersonId;
-                    renderApp(); // Re-render visual selection
+                    renderApp(); 
                     setTimeout(() => {
                         zoomToNode(topLevelPersonId);
-                    }, 350); // Timeout allows layout to render and return accurate bounding rect coordinates
+                    }, 350); 
                 }
             } catch (err) {
-                // Fall back to pre-saved cache data but keep user restricted to blocker modal
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-red-600 uppercase flex items-center space-x-1";
                     badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i><span>Offline</span>`;
@@ -1271,7 +1277,7 @@
                 state.selectedId = null;
                 renderApp();
 
-                console.error("Google Sheets synchronization bypassed. Blocker interface active.");
+                console.error("Google Sheets synchronization bypassed. Blocker interface active.", err);
                 openCacheWarningModal(); // Block interaction until a valid sync occurs
             } finally {
                 clearTimeout(slowSyncTimer);
@@ -1280,6 +1286,25 @@
                 if (hIcon) hIcon.classList.remove('animate-spin');
                 if (loader) loader.classList.add('hidden');
             }
+        }
+
+        // Cache Modal Interface Handlers
+        function openCacheWarningModal() {
+            const modal = document.getElementById('cache-warning-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeCacheWarningModal() {
+            const modal = document.getElementById('cache-warning-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function retrySyncFromModal() {
+            const icon = document.getElementById('modal-sync-icon');
+            if (icon) icon.classList.add('animate-spin');
+            syncGoogleSheet().finally(() => {
+                if (icon) icon.classList.remove('animate-spin');
+            });
         }
 
         function showSlowSyncModal() {
@@ -1302,23 +1327,16 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        function openCacheWarningModal() {
-            const modal = document.getElementById('cache-warning-modal');
-            if (modal) modal.classList.remove('hidden');
+        function closeNavigationTutorial() {
+            const box = document.getElementById('tutorial-box');
+            if (box) box.classList.add('hidden');
         }
 
-        function closeCacheWarningModal() {
-            const modal = document.getElementById('cache-warning-modal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function retrySyncFromModal() {
-            const modalIcon = document.getElementById('modal-sync-icon');
-            if (modalIcon) modalIcon.classList.add('animate-spin');
-            
-            syncGoogleSheet().finally(() => {
-                if (modalIcon) modalIcon.classList.remove('animate-spin');
-            });
+        function toggleNavigationTutorial() {
+            const box = document.getElementById('tutorial-box');
+            if (box) {
+                box.classList.toggle('hidden');
+            }
         }
 
         function parseGoogleCsv(text) {
@@ -1390,6 +1408,8 @@
                 const rawEmail = fetchVal(emailIdx, `staff.${idx}@esceo.org`);
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
                 const rawPhotoUrl = fetchVal(photoIdx, '');
+                
+                // Convert raw Google Drive URLs to production-optimized, cookie-less thumbnail urls
                 const formattedPhotoUrl = convertGoogleDriveUrl(rawPhotoUrl);
 
                 const encryptedEmail = safeBtoa(rawEmail);
