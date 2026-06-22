@@ -1422,7 +1422,7 @@
             }
 
             try {
-                const proxyUrl1 = "https://corsproxy.io/?" + encodeURIComponent(url);
+                const proxyUrl1 = "https://corsproxy.io/?url=" + encodeURIComponent(url);
                 const res = await fetchWithTimeout(proxyUrl1, {}, 3500);
                 if (res.ok) return await res.text();
             } catch (e) {
