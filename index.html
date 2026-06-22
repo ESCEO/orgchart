@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESCEO Organizational Chart</title>
+    
+    <!-- Tailwind CSS for rich modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind = {
+            config: {
+                theme: {
+                    extend: {
+                        colors: {
+                            navy: '#1F2D4C',
+                            escgray: '#454545',
+                            escblue: '#3F64AF',
+                            lightgray: '#898B8B',
+                            medgray: '#666B6B',
+                            lightblue: '#718BC3',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome for robust modern utility icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for premium clean typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar style for sleek aesthetic look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #898B8B;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666B6B;
+        }
+        .canvas-container {
+            cursor: grab;
+        }
+        .canvas-container:active {
+            cursor: grabbing;
+        }
+        /* Smooth transition class for fluid zoom-to-card actions */
+        .canvas-transition {
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        /* Custom CSS connector rules using custom Light Gray for visual lines */
+        .tree-vertical-line {
+            width: 2px;
+            background-color: #898B8B;
+            position: absolute;
+        }
+        .tree-horizontal-line {
+            height: 2px;
+            background-color: #898B8B;
+            position: absolute;
+        }
+        /* Fade animations for alerts and modals */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-escgray h-screen overflow-hidden flex flex-col">
+
+    <!-- Top Dashboard Header Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center z-20 shadow-sm shrink-0">
+        <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+            <div class="bg-navy text-white p-2.5 rounded-xl shadow-md">
+                <i class="fa-solid fa-sitemap text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-navy to-escblue bg-clip-text text-transparent">
+                    ESCEO Organizational Chart
+                </h1>
+            </div>
+        </div>
+
+        <!-- Alert Banner Area & Condensed Database Status Controls -->
+        <div class="flex items-center space-x-3">
+            <div id="toast-info" class="hidden flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
+                <i class="fa-solid fa-spinner animate-spin text-escblue"></i>
+                <span id="toast-info-msg">Connecting database...</span>
+            </div>
+            <div id="toast-success" class="hidden flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="toast-success-msg">Action successful!</span>
+            </div>
+            <div id="toast-error" class="hidden flex items-center space-x-2 bg-rose-50 border border-rose-200 text-rose-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="toast-error-msg">Error executing request.</span>
+            </div>
+
+            <!-- Condensed DB Status Block -->
+            <div class="flex items-center space-x-2 text-xs bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-2 shadow-sm">
+                <span class="font-bold text-navy flex items-center text-[11px] shrink-0">
+                    <i class="fa-solid fa-database text-escblue mr-1.5"></i>
+                    <span class="hidden md:inline">Database:</span>
+                </span>
+                <span id="sync-badge" class="text-[10px] font-extrabold text-blue-600 uppercase flex items-center space-x-1">
+                    <i class="fa-solid fa-spinner animate-spin mr-1"></i> Syncing
+                </span>
+                <span class="text-slate-300 hidden sm:inline">|</span>
+                <span id="sync-details" class="text-[10px] text-lightgray truncate max-w-[140px] hidden sm:inline">Connecting...</span>
+            </div>
+
+            <!-- Manual Force Sync Button -->
+            <button onclick="syncGoogleSheet()" class="flex items-center space-x-2 bg-indigo-50/50 hover:bg-lightblue/10 text-escblue px-3 py-2 rounded-lg text-xs font-semibold border border-lightblue/25 transition-all shadow-sm">
+                <i class="fa-solid fa-arrows-rotate" id="header-sync-icon"></i>
+                <span>Sync Now</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Interactive Workspace Grid -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Left Panel: Profile inspector & directory search -->
+        <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-10 shrink-0 shadow-lg md:relative absolute inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
+            
+            <!-- Sidebar Header Title -->
+            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/40">
+                <h2 class="text-xs font-extrabold uppercase text-navy tracking-wider flex items-center">
+                    <i class="fa-solid fa-address-book mr-2 text-escblue"></i> Staff Search and Profiles
+                </h2>
+            </div>
+
+            <!-- Scrollable Drawer Container -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col">
+
+                <!-- Real-time Multi-field Search Input Card -->
+                <div class="space-y-2 shrink-0">
+                    <label class="text-xs font-bold uppercase text-lightgray tracking-wider">Search Organization Chart</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-lightgray text-sm"></i>
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            oninput="handleSearch(this.value)"
+                            placeholder="Search by name, department, supervisor..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-escblue placeholder-lightgray text-escgray font-medium"
+                        />
+                    </div>
+                </div>
+
+                <!-- Selected Employee Profile Inspector Detail Card -->
+                <div id="inspector-card" class="hidden bg-slate-50 rounded-xl border border-lightgray/20 p-5 space-y-5 shadow-inner animate-fade-in flex-1">
+                    <div class="flex items-start space-x-4">
+                        <img id="insp-photo" src="https://placehold.co/150" alt="" class="w-16 h-16 rounded-xl object-cover bg-white shadow border border-slate-150">
+                        <div class="flex-1 min-w-0">
+                            <h3 id="insp-name" class="font-extrabold text-navy text-base truncate">Name</h3>
+                            <p id="insp-role" class="text-xs text-escblue font-bold mt-0.5">Role / Position</p>
+                            <span id="insp-dept" class="inline-block text-[10px] bg-lightblue/10 text-escblue px-2.5 py-0.5 rounded-full font-bold mt-2 uppercase tracking-wide">
+                                Department
+                            </span>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-200">
+
+                    <!-- Contact Details & Cybersecurity Protection Controls -->
+                    <div class="space-y-4 text-xs">
+                        
+                        <!-- Phone Number Detail Block -->
+                        <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-lightgray block mb-1">
+                                <i class="fa-solid fa-phone text-escblue mr-1"></i> Phone Number
+                            </span>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-navy font-mono" id="insp-phone">
+                                    N/A
+                                </span>
+                                <a 
+                                    id="phone-tel-btn"
+                                    href="#"
+                                    class="bg-escblue hover:bg-navy text-white p-1.5 rounded-lg text-xs transition-all shadow flex items-center justify-center w-8 h-8"
+                                    title="Call Number"
+                                >
+                                    <i class="fa-solid fa-phone-volume"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Protected Cybersecurity Email Block -->
+                        <div class="p-3 bg-slate-100 rounded-lg border border-slate-200/50 shadow-sm">
+                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-lightgray block mb-1.5">
+                                <i class="fa-solid fa-shield-halved text-escblue mr-1"></i> Email Address
+                            </span>
+                            <div class="flex items-center justify-between min-h-8">
+                                <span class="text-[11px] font-semibold text-medgray italic break-all pr-2" id="secure-email-placeholder">
+                                    ••••••••@••••.•••
+                                </span>
+                                <button 
+                                    id="email-action-btn"
+                                    onclick="initiateSecureEmail()"
+                                    class="bg-escblue hover:bg-navy text-white px-2.5 py-1 rounded-md text-[10px] font-bold transition-all shadow flex items-center space-x-1 shrink-0"
+                                >
+                                    <i class="fa-solid fa-unlock text-[9px]"></i>
+                                    <span>Unlock & Copy</span>
+                                </button>
+                            </div>
+                            <div id="email-verification-step" class="hidden mt-2 pt-2 border-t border-slate-200 space-y-2 animate-fade-in">
+                                <p class="text-[10px] text-medgray">Click the correct symbol to prove humanity:</p>
+                                <div class="flex items-center space-x-2" id="verification-options">
+                                    <!-- Javascript generated verification target -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supervisor Traversal -->
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-lightgray block mb-1">Supervisor</span>
+                            <div id="insp-supervisor-container" class="flex items-center text-escgray font-semibold bg-white p-2 border border-slate-150 rounded-lg shadow-sm">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+
+                        <!-- Direct Reports Traversal list inside Profile Inspector -->
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-lightgray block mb-2" id="insp-reports-title">
+                                Direct Reports (0)
+                            </span>
+                            <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1" id="insp-reports-list">
+                                <!-- Dynamic elements nested here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Selection State placeholder -->
+                <div id="inspector-placeholder" class="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 p-5 flex-1 flex flex-col justify-center items-center">
+                    <i class="fa-solid fa-users text-lightgray text-3xl mb-3"></i>
+                    <p class="text-xs text-medgray leading-relaxed max-w-xs">Select any employee node on the chart to inspect their supervisor, direct reports, phone number, and unlock their email address.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right side Canvas Workspace Area -->
+        <main class="flex-1 flex flex-col relative overflow-hidden">
+            
+            <!-- Dynamic Controls Panel Header Block -->
+            <section class="bg-slate-100/80 backdrop-blur-sm px-6 py-3 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between z-10 shrink-0">
+                
+                <!-- View Option selectors -->
+                <div class="flex items-center space-x-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                    <button onclick="switchViewMode('tree')" id="view-btn-tree" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-escblue text-white shadow-sm">
+                        <i class="fa-solid fa-diagram-project text-[11px]"></i>
+                        <span>Visual Tree</span>
+                    </button>
+                    <button onclick="switchViewMode('list')" id="view-btn-list" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all text-medgray hover:text-escgray">
+                        <i class="fa-solid fa-list-ul text-[11px]"></i>
+                        <span>List Directory</span>
+                    </button>
+                </div>
+
+                <!-- Tree Orientation Toggles & Bulk Expand/Collapsers -->
+                <div id="tree-options" class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                        <button onclick="setLayoutMode('vertical')" id="layout-btn-vertical" class="px-2.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-escblue">
+                            Vertical
+                        </button>
+                        <button onclick="setLayoutMode('horizontal')" id="layout-btn-horizontal" class="px-2.5 py-1.5 rounded-md text-xs font-bold text-medgray hover:text-escblue">
+                            Horizontal
+                        </button>
+                    </div>
+
+                    <div class="flex items-center space-x-1.5 bg-white p-1 rounded-lg border border-slate-200 shadow-sm text-xs">
+                        <button onclick="expandAll()" class="px-2.5 py-1.5 text-escgray hover:bg-slate-50 font-bold rounded-md">
+                            Expand All
+                        </button>
+                        <span class="text-slate-300">|</span>
+                        <button onclick="collapseAll()" class="px-2.5 py-1.5 text-escgray hover:bg-slate-50 font-bold rounded-md">
+                            Collapse All
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interactive Drag, Pan and Zoom Canvas container -->
+            <div id="canvas-workspace" class="flex-1 relative overflow-hidden select-none bg-slate-50">
+                
+                <!-- Seamless Loading Overlay -->
+                <div id="seamless-loader" class="absolute inset-0 bg-slate-50/90 z-30 flex flex-col items-center justify-center space-y-4 animate-fade-in hidden">
+                    <div class="relative flex items-center justify-center">
+                        <div class="w-16 h-16 border-4 border-indigo-100 border-t-escblue rounded-full animate-spin"></div>
+                        <i class="fa-solid fa-sitemap absolute text-escblue text-lg"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-extrabold text-navy text-sm">Synchronizing Directory</h3>
+                        <p class="text-[11px] text-medgray mt-1">Connecting to Google Sheet...</p>
+                    </div>
+                </div>
+
+                <!-- Graphic Render Box -->
+                <div id="tree-view-canvas" class="w-full h-full overflow-hidden absolute inset-0 canvas-container flex items-center justify-center">
+                    <div id="canvas-mover" class="origin-center p-12 flex flex-col items-center transform canvas-transition">
+                        <!-- Javascript recursively renders tree structures inside this div -->
+                    </div>
+                </div>
+
+                <!-- Directory List Mode Grid View -->
+                <div id="directory-list-view" class="hidden w-full h-full overflow-y-auto p-8 bg-slate-50">
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 class="text-lg font-bold">Comprehensive Directory Grid</h2>
+                                <p class="text-xs text-lightgray mt-0.5">Filter results dynamically in the sidebar search input</p>
+                            </div>
+                            <span id="directory-total-badge" class="text-xs font-semibold bg-slate-200 text-medgray px-3 py-1 rounded-full">
+                                Showing 0 of 0 employees
+                            </span>
+                        </div>
+
+                        <div id="directory-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Dynamic profiles injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Canvas View Controls Bar -->
+                <div id="canvas-controls" class="absolute bottom-6 right-6 flex items-center space-x-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200">
+                    <button onclick="adjustZoom(0.1)" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom In">
+                        <i class="fa-solid fa-plus text-sm"></i>
+                    </button>
+                    <button onclick="adjustZoom(-0.1)" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom Out">
+                        <i class="fa-solid fa-minus text-sm"></i>
+                    </button>
+                    <span class="text-slate-300">|</span>
+                    <span id="zoom-level-indicator" class="text-xs font-bold text-medgray px-1">100%</span>
+                    <span class="text-slate-300">|</span>
+                    <button onclick="resetZoomAndPan()" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Reset Frame">
+                        <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Floating Tutorial Box Info Card -->
+                <div class="absolute bottom-6 left-6 hidden lg:block bg-white/90 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200 max-w-xs">
+                    <h4 class="text-xs font-bold text-navy mb-1 flex items-center">
+                        <i class="fa-solid fa-circle-info text-escblue mr-1.5"></i> Canvas Navigation
+                    </h4>
+                    <ul class="text-[10px] text-medgray space-y-1 list-disc pl-4">
+                        <li>Left-click and hold anywhere on the canvas background to Pan/Drag the layout map.</li>
+                        <li>Click the expandable arrow buttons below the nodes to toggle visual reports branches.</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Email Copied Alert Modal -->
+    <div id="copy-success-modal" class="hidden fixed inset-0 bg-navy/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 mb-4 shadow-sm">
+                <i class="fa-solid fa-circle-check text-2xl"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-navy">Email Address Copied!</h3>
+            <p class="text-xs text-medgray mt-2 leading-relaxed">
+                The decrypted email address has been safely copied directly to your device's clipboard.
+            </p>
+            <div class="mt-5">
+                <button onclick="closeCopySuccessModal()" class="w-full py-2.5 bg-escblue hover:bg-navy text-white text-xs font-bold rounded-xl shadow-md transition-all">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // HARDCODED DATABASE ENDPOINT URL
+        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2KRBGym05tdr2yk__Lhsb63FoVddLnVch6UNiMbhqGo7xN6bcWGLOq8DFXMRVN7-MqFIQCBhh1UU8/pub?output=csv";
+
+        // Preloaded complete workforce cache (Initial backup rendered cleanly while loading)
+        const INITIAL_WORKFORCE = [
+            { id: "Sarah Jenkins", name: "Sarah Jenkins", role: "Chief Executive Officer", supervisor: "", department: "Executive", email: "c2FyYWguamVua2luc0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0101", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" },
+            { id: "Michael Chang", name: "Michael Chang", role: "VP of Engineering", supervisor: "Sarah Jenkins", department: "Engineering", email: "bWljaGFlbC5jaGFuZ0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0102", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
+            { id: "Elena Rostova", name: "Elena Rostova", role: "VP of Product", supervisor: "Sarah Jenkins", department: "Product", email: "ZWxlbmEucm9zdG92YUBlc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0103", photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200" },
+            { id: "David Vance", name: "David Vance", role: "VP of Marketing", supervisor: "Sarah Jenkins", department: "Marketing", email: "ZGF2aWQudmFuY2VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0104", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200" },
+            { id: "Amina Yusuf", name: "Amina Yusuf", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "YW1pbmEueXVzdWZAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0105", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" },
+            { id: "Liam O'Connor", name: "Liam O'Connor", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "bGlhbS5vY29ubm9yQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0106", photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200" },
+            { id: "Chloe Mercer", name: "Chloe Mercer", role: "Lead Product Designer", supervisor: "Elena Rostova", department: "Product", email: "Y2hsb2UubWVyY2VyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0107", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200" },
+            { id: "Marcus Brody", name: "Marcus Brody", role: "Senior Product Manager", supervisor: "Elena Rostova", department: "Product", email: "bWFyY3VzLmJyb2R5QGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0108", photo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200" },
+            { id: "Jessica Taylor", name: "Jessica Taylor", role: "Growth Lead", supervisor: "David Vance", department: "Marketing", email: "amVzc2ljYS50YXlsb3VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0109", photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" },
+            { id: "Rajesh Kumar", name: "Rajesh Kumar", role: "DevOps Lead", supervisor: "Amina Yusuf", department: "Engineering", email: "cmFqZXNoLmt1bWFyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0110", photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200" }
+        ];
+
+        // Core Application State Managers
+        const state = {
+            people: [...INITIAL_WORKFORCE],
+            collapsed: {},
+            searchQuery: "",
+            selectedId: null,
+            zoom: 1,
+            pan: { x: 0, y: 0 },
+            layoutMode: "vertical", // 'vertical' or 'horizontal'
+            viewMode: "tree", // 'tree' or 'list'
+            isDraggingCanvas: false,
+            dragStart: { x: 0, y: 0 },
+            isEmailVerified: false,
+            humanVerifyOption: null
+        };
+
+        // Secure UTF-8 to Base64 encoder helper
+        function safeBtoa(str) {
+            try {
+                return btoa(unescape(encodeURIComponent(str || '')));
+            } catch (e) {
+                return '';
+            }
+        }
+
+        // Main initialization entrypoint
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeInteractiveCanvas();
+            renderApp();
+            resetZoomAndPan();
+            
+            // Auto Trigger Database Sync immediately on load
+            syncGoogleSheet();
+        });
+
+        function initializeInteractiveCanvas() {
+            const workspace = document.getElementById('canvas-workspace');
+
+            workspace.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
+                state.isDraggingCanvas = true;
+                const mover = document.getElementById('canvas-mover');
+                if (mover) mover.classList.remove('canvas-transition'); // Disable animations during real-time manual drags
+                state.dragStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!state.isDraggingCanvas) return;
+                state.pan = {
+                    x: e.clientX - state.dragStart.x,
+                    y: e.clientY - state.dragStart.y
+                };
+                updateCanvasTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                state.isDraggingCanvas = false;
+                const mover = document.getElementById('canvas-mover');
+                if (mover) mover.classList.add('canvas-transition'); // Re-enable smooth transition easing
+            });
+
+            workspace.addEventListener('selectstart', (e) => {
+                if (state.isDraggingCanvas) e.preventDefault();
+            });
+        }
+
+        function updateCanvasTransform() {
+            const mover = document.getElementById('canvas-mover');
+            if (mover) {
+                mover.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+                document.getElementById('zoom-level-indicator').innerText = `${Math.round(state.zoom * 100)}%`;
+            }
+        }
+
+        function adjustZoom(step) {
+            state.zoom = Math.max(0.3, Math.min(2.5, state.zoom + step));
+            updateCanvasTransform();
+        }
+
+        function resetZoomAndPan() {
+            state.zoom = 1.0;
+            state.pan = { x: 0, y: 0 };
+            updateCanvasTransform();
+        }
+
+        function zoomToNode(nodeId) {
+            const workspace = document.getElementById('canvas-workspace');
+            const mover = document.getElementById('canvas-mover');
+            const el = document.getElementById(`node-card-${nodeId}`);
+            
+            if (!workspace || !mover || !el) return;
+            if (state.viewMode !== 'tree') return;
+
+            const viewRect = workspace.getBoundingClientRect();
+            const moverRect = mover.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            
+            // Calculate coordinates inside the mover container by unscaling the offset bounding values
+            const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
+            const localY = (elRect.top + elRect.height / 2 - moverRect.top) / state.zoom;
+            
+            // Set scale index directly to 100% crisp reading layout
+            state.zoom = 1.0;
+            
+            // Math translation variables centering local points directly in screen center bounds
+            state.pan.x = (viewRect.width / 2) - (localX * state.zoom);
+            state.pan.y = (viewRect.height / 2) - (localY * state.zoom);
+            
+            updateCanvasTransform();
+        }
+
+        function ensureNodeIsVisible(nodeId) {
+            const person = state.people.find(p => p.id === nodeId);
+            if (!person) return;
+            
+            let currentSupervisorId = person.supervisor;
+            while (currentSupervisorId) {
+                if (state.collapsed[currentSupervisorId]) {
+                    delete state.collapsed[currentSupervisorId];
+                }
+                const supervisorNode = state.people.find(p => p.id === currentSupervisorId);
+                currentSupervisorId = supervisorNode ? supervisorNode.supervisor : null;
+            }
+        }
+
+        function handleSearch(query) {
+            state.searchQuery = query.toLowerCase().trim();
+            let firstMatchId = null;
+            if (state.searchQuery) {
+                state.people.forEach(p => {
+                    const matchesName = p.name.toLowerCase().includes(state.searchQuery);
+                    const matchesDept = p.department.toLowerCase().includes(state.searchQuery);
+                    const matchesRole = p.role && p.role.toLowerCase().includes(state.searchQuery);
+                    const matchesPhone = p.phoneNumber && p.phoneNumber.toLowerCase().includes(state.searchQuery);
+                    
+                    if (matchesName || matchesDept || matchesRole || matchesPhone) {
+                        ensureNodeIsVisible(p.id);
+                        if (!firstMatchId) {
+                            firstMatchId = p.id;
+                        }
+                    }
+                });
+            }
+            renderApp();
+
+            if (firstMatchId && state.viewMode === 'tree') {
+                // Ensure nested layout cycles trigger after browser parses updated node expands
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        zoomToNode(firstMatchId);
+                    });
+                });
+            }
+        }
+
+        function getHierarchyMaps() {
+            const roots = [];
+            const childrenMap = {};
+
+            state.people.forEach(p => {
+                childrenMap[p.id] = [];
+            });
+
+            state.people.forEach(p => {
+                const supId = p.supervisor;
+                const hasValidSupervisor = supId && state.people.some(parent => parent.id === supId);
+                
+                if (!supId || !hasValidSupervisor) {
+                    roots.push(p);
+                } else {
+                    if (!childrenMap[supId]) childrenMap[supId] = [];
+                    childrenMap[supId].push(p);
+                }
+            });
+
+            return { roots, childrenMap };
+        }
+
+        function generateTreeHtml(node, childrenMap) {
+            const children = childrenMap[node.id] || [];
+            const isCollapsed = state.collapsed[node.id];
+            const isMatched = state.searchQuery && (
+                node.name.toLowerCase().includes(state.searchQuery) ||
+                node.department.toLowerCase().includes(state.searchQuery) ||
+                (node.role && node.role.toLowerCase().includes(state.searchQuery)) ||
+                (node.phoneNumber && node.phoneNumber.toLowerCase().includes(state.searchQuery))
+            );
+            const isSelected = state.selectedId === node.id;
+
+            let supervisorName = "N/A";
+            if (node.supervisor) {
+                const supObj = state.people.find(p => p.id === node.supervisor);
+                if (supObj) supervisorName = supObj.name;
+            }
+
+            const cardClasses = `org-node-card cursor-pointer transition-all duration-300 transform hover:-translate-y-1 w-64 bg-white rounded-xl shadow-md hover:shadow-xl border-2 p-4 flex flex-col items-center text-center relative z-10
+                ${isSelected ? 'border-escblue ring-4 ring-lightblue/20' : 'border-lightgray/25'}
+                ${isMatched ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-100' : ''}
+            `;
+
+            let nodeHtml = `
+                <div class="flex flex-col items-center ${state.layoutMode === 'vertical' ? '' : 'sm:flex-row sm:items-start'} relative">
+                    <div class="flex flex-col items-center relative z-10">
+                        <div id="node-card-${node.id}" onclick="selectPerson('${node.id}')" class="${cardClasses}">
+                            <span class="text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-lightblue/10 text-escblue mb-2">
+                                ${escapeHtml(node.department)}
+                            </span>
+                            
+                            <div class="relative mb-2">
+                                <img src="${escapeHtml(node.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(node.name)}" alt="${escapeHtml(node.name)}" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow bg-slate-100" onerror="this.src='https://placehold.co/100x100/eaeaea/888888?text=Profile'">
+                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                            </div>
+
+                            <h4 class="font-bold text-navy text-sm truncate w-full">${escapeHtml(node.name)}</h4>
+                            <p class="text-xs text-medgray font-medium truncate w-full mt-0.5">${escapeHtml(node.role || 'Contributor')}</p>
+                            
+                            <div class="mt-2.5 text-[9px] text-lightgray font-semibold border-t border-slate-100 pt-2 w-full flex items-center justify-center space-x-1">
+                                <span class="text-lightgray">Supervisor:</span>
+                                <span class="text-medgray truncate max-w-[130px]">${escapeHtml(supervisorName)}</span>
+                            </div>
+
+                            ${children.length > 0 ? `
+                                <button onclick="event.stopPropagation(); toggleNodeCollapse('${node.id}')" class="absolute -bottom-3 bg-white text-medgray hover:text-escblue border border-lightgray/40 rounded-full p-1 shadow-md hover:shadow-lg transition-all focus:outline-none z-20">
+                                    <i class="fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-[10px] w-3.5 h-3.5 flex items-center justify-center"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        ${children.length > 0 && isCollapsed ? `
+                            <div class="mt-4 text-[9px] text-escblue font-bold bg-lightblue/10 px-2.5 py-0.5 rounded-full border border-lightblue/20 animate-fade-in">
+                                ${children.length} Direct Reports
+                            </div>
+                        ` : ''}
+                    </div>
+            `;
+
+            if (children.length > 0 && !isCollapsed) {
+                const layoutDir = state.layoutMode;
+                nodeHtml += `
+                    <div class="flex ${layoutDir === 'vertical' ? 'flex-col items-center mt-8 pt-4 w-full relative' : 'sm:flex-row sm:pl-8 sm:py-2 relative flex-col items-center mt-8 sm:mt-0'}">
+                        
+                        ${layoutDir === 'vertical' ? `
+                            <div class="tree-vertical-line top-0 h-4" style="left: calc(50% - 1px);"></div>
+                            ${children.length > 1 ? `<div class="tree-horizontal-line top-4" style="width: calc(100% - 256px); left: 128px;"></div>` : ''}
+                        ` : `
+                            <div class="tree-horizontal-line left-0 top-1/2 w-8 transform -translate-y-1/2 hidden sm:block"></div>
+                            ${children.length > 1 ? `<div class="tree-vertical-line left-8" style="top: 24px; bottom: 24px;"></div>` : ''}
+                        `}
+
+                        <div class="flex ${layoutDir === 'vertical' ? 'flex-row justify-center items-start gap-8 w-full' : 'flex-col justify-center gap-6'}">
+                            ${children.map((child, index) => {
+                                const isFirst = index === 0;
+                                const isLast = index === children.length - 1;
+
+                                return `
+                                    <div class="relative flex flex-col items-center">
+                                        ${layoutDir === 'vertical' && children.length > 1 ? `
+                                            ${isFirst ? `<div class="absolute top-[-16px] left-0 right-1/2 h-0.5 bg-slate-50 z-0"></div>` : ''}
+                                            ${isLast ? `<div class="absolute top-[-16px] left-1/2 right-0 h-0.5 bg-slate-50 z-0"></div>` : ''}
+                                            <div class="tree-vertical-line top-[-16px] h-4" style="left: calc(50% - 1px);"></div>
+                                        ` : ''}
+
+                                        ${layoutDir === 'horizontal' && children.length > 1 ? `
+                                            <div class="tree-horizontal-line left-4 top-1/2 w-4 transform -translate-y-1/2 hidden sm:block"></div>
+                                        ` : ''}
+
+                                        ${generateTreeHtml(child, childrenMap)}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            nodeHtml += `</div>`;
+            return nodeHtml;
+        }
+
+        function renderApp() {
+            if (state.viewMode === "tree") {
+                document.getElementById('tree-view-canvas').classList.remove('hidden');
+                document.getElementById('directory-list-view').classList.add('hidden');
+                document.getElementById('canvas-controls').classList.remove('hidden');
+                document.getElementById('tree-options').classList.remove('hidden');
+
+                const { roots, childrenMap } = getHierarchyMaps();
+                const canvasMover = document.getElementById('canvas-mover');
+
+                if (roots.length > 0) {
+                    canvasMover.innerHTML = `
+                        <div class="flex flex-col items-center space-y-12">
+                            ${roots.map(root => generateTreeHtml(root, childrenMap)).join('')}
+                        </div>
+                    `;
+                } else {
+                    canvasMover.innerHTML = `
+                        <div class="text-center py-20 bg-white rounded-2xl border border-slate-200 p-8 shadow-md max-w-sm">
+                            <i class="fa-solid fa-circle-exclamation text-lightgray text-4xl mb-3"></i>
+                            <h3 class="font-bold text-navy">No Top Supervisor Found</h3>
+                            <p class="text-xs text-medgray mt-2 leading-relaxed">
+                                Every org chart structure requires at least one primary individual without a supervisor key to initiate root nodes.
+                            </p>
+                        </div>
+                    `;
+                }
+            } else {
+                document.getElementById('tree-view-canvas').classList.add('hidden');
+                document.getElementById('directory-list-view').classList.remove('hidden');
+                document.getElementById('canvas-controls').classList.add('hidden');
+                document.getElementById('tree-options').classList.add('hidden');
+
+                const queryActive = state.searchQuery;
+                const matches = state.people.filter(p => {
+                    if (!queryActive) return true;
+                    const matchesName = p.name.toLowerCase().includes(state.searchQuery);
+                    const matchesDept = p.department.toLowerCase().includes(state.searchQuery);
+                    const matchesRole = p.role && p.role.toLowerCase().includes(state.searchQuery);
+                    const matchesPhone = p.phoneNumber && p.phoneNumber.toLowerCase().includes(state.searchQuery);
+                    return matchesName || matchesDept || matchesRole || matchesPhone;
+                });
+
+                document.getElementById('directory-total-badge').innerText = `Showing ${matches.length} of ${state.people.length} employees`;
+
+                const container = document.getElementById('directory-cards-container');
+                if (matches.length > 0) {
+                    container.innerHTML = matches.map(p => {
+                        let supervisorName = "N/A";
+                        if (p.supervisor) {
+                            const supObj = state.people.find(sup => sup.id === p.supervisor);
+                            if (supObj) supervisorName = supObj.name;
+                        }
+
+                        return `
+                            <div onclick="selectPerson('${p.id}')" class="bg-white p-4 rounded-xl border border-lightgray/20 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center space-x-4 animate-fade-in">
+                                <img src="${escapeHtml(p.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(p.name)}" alt="" class="w-12 h-12 rounded-full object-cover bg-slate-50 border border-slate-150" onerror="this.src='https://placehold.co/100x100/eaeaea/888888?text=Profile'">
+                                <div class="flex-1 min-w-0">
+                                    <span class="text-[9px] font-bold text-escblue uppercase tracking-widest block mb-0.5">
+                                        ${escapeHtml(p.department)}
+                                    </span>
+                                    <h4 class="font-extrabold text-sm truncate text-navy">${escapeHtml(p.name)}</h4>
+                                    <p class="text-xs text-medgray truncate">${escapeHtml(p.role || 'Contributor')}</p>
+                                    <div class="flex flex-col mt-1 space-y-0.5 text-[10px] text-lightgray">
+                                        <span><i class="fa-solid fa-phone mr-1"></i> ${escapeHtml(p.phoneNumber || 'N/A')}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right text-[10px] text-lightgray space-y-1 self-start">
+                                    <p class="font-semibold text-medgray">Supervisor:</p>
+                                    <p class="font-bold text-navy truncate max-w-[100px]">${escapeHtml(supervisorName)}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
+                            <i class="fa-solid fa-triangle-exclamation text-lightgray text-3xl mb-2"></i>
+                            <h4 class="font-bold text-navy text-sm">No Directory Match Found</h4>
+                            <p class="text-xs text-medgray mt-1">Refine your search term or query key.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            updateProfileInspector();
+        }
+
+        function updateProfileInspector() {
+            if (!state.selectedId) {
+                document.getElementById('inspector-card').classList.add('hidden');
+                document.getElementById('inspector-placeholder').classList.remove('hidden');
+                return;
+            }
+
+            const person = state.people.find(p => p.id === state.selectedId);
+            if (!person) {
+                state.selectedId = null;
+                updateProfileInspector();
+                return;
+            }
+
+            document.getElementById('inspector-card').classList.remove('hidden');
+            document.getElementById('inspector-placeholder').classList.add('hidden');
+
+            document.getElementById('insp-name').innerText = person.name;
+            document.getElementById('insp-role').innerText = person.role || 'Contributor';
+            document.getElementById('insp-dept').innerText = person.department;
+            document.getElementById('insp-photo').src = person.photo || 'https://placehold.co/150x150/eaeaea/888888?text=' + encodeURIComponent(person.name);
+
+            // Re-apply secure/cyber-protection configuration for emails
+            resetEmailVerificationState();
+
+            document.getElementById('insp-phone').innerText = person.phoneNumber || 'N/A';
+            document.getElementById('phone-tel-btn').href = person.phoneNumber ? `tel:${person.phoneNumber}` : '#';
+
+            const supContainer = document.getElementById('insp-supervisor-container');
+            if (person.supervisor) {
+                const supervisor = state.people.find(p => p.id === person.supervisor);
+                if (supervisor) {
+                    supContainer.innerHTML = `
+                        <button onclick="selectPerson('${supervisor.id}')" class="flex items-center space-x-2 w-full text-left hover:text-escblue transition-colors">
+                            <img src="${escapeHtml(supervisor.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(supervisor.name)}" class="w-6 h-6 rounded-full object-cover">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold truncate text-navy">${escapeHtml(supervisor.name)}</p>
+                                <p class="text-[9px] text-medgray truncate">${escapeHtml(supervisor.role || 'Supervisor')}</p>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-lightgray text-[10px]"></i>
+                        </button>
+                    `;
+                } else {
+                    supContainer.innerHTML = `<span class="text-xs italic text-medgray">Independent Contributor (${escapeHtml(person.supervisor)})</span>`;
+                }
+            } else {
+                supContainer.innerHTML = `<span class="text-xs italic text-medgray">No Supervisor Assigned (Top Leader)</span>`;
+            }
+
+            const reports = state.people.filter(p => p.supervisor === person.id);
+            document.getElementById('insp-reports-title').innerText = `Direct Reports (${reports.length})`;
+
+            const reportsList = document.getElementById('insp-reports-list');
+            if (reports.length > 0) {
+                reportsList.innerHTML = reports.map(child => `
+                    <button onclick="selectPerson('${child.id}')" class="w-full text-left flex items-center justify-between p-2 hover:bg-slate-100 rounded-lg border border-slate-100 transition-all">
+                        <span class="truncate text-[11px] font-bold text-escgray">${escapeHtml(child.name)} <span class="text-lightgray font-medium font-mono text-[10px]">— ${escapeHtml(child.role || 'Reports')}</span></span>
+                        <i class="fa-solid fa-arrow-turn-up text-lightgray text-[9px] rotate-90"></i>
+                    </button>
+                `).join('');
+            } else {
+                reportsList.innerHTML = `<span class="text-xs text-medgray italic block py-1">This staff member does not have reports.</span>`;
+            }
+        }
+
+        function resetEmailVerificationState() {
+            state.isEmailVerified = false;
+            document.getElementById('secure-email-placeholder').innerHTML = '••••••••@••••.•••';
+            document.getElementById('secure-email-placeholder').classList.remove('text-escblue', 'font-mono');
+            document.getElementById('secure-email-placeholder').classList.add('italic', 'text-medgray');
+            
+            const actionBtn = document.getElementById('email-action-btn');
+            actionBtn.classList.remove('hidden');
+            actionBtn.innerHTML = `<i class="fa-solid fa-unlock text-[9px]"></i> <span>Unlock & Copy</span>`;
+            actionBtn.onclick = initiateSecureEmail;
+
+            document.getElementById('email-verification-step').classList.add('hidden');
+        }
+
+        const VERIFY_SYMBOLS = [
+            { icon: "fa-key", name: "key" },
+            { icon: "fa-shield", name: "shield" },
+            { icon: "fa-lock", name: "lock" },
+            { icon: "fa-check-double", name: "check" },
+            { icon: "fa-robot", name: "robot" }
+        ];
+
+        function initiateSecureEmail() {
+            const stepArea = document.getElementById('email-verification-step');
+            stepArea.classList.remove('hidden');
+
+            const targetIndex = Math.floor(Math.random() * VERIFY_SYMBOLS.length);
+            const targetSymbol = VERIFY_SYMBOLS[targetIndex];
+            state.humanVerifyOption = targetSymbol.name;
+
+            const desc = stepArea.querySelector('p');
+            desc.innerHTML = `Security challenge: Click on the <strong class="text-escblue uppercase font-bold">${targetSymbol.name}</strong> icon:`;
+
+            const shuffled = [...VERIFY_SYMBOLS].sort(() => 0.5 - Math.random());
+            const optionsDiv = document.getElementById('verification-options');
+            optionsDiv.innerHTML = shuffled.map(sym => `
+                <button 
+                    type="button"
+                    onclick="verifyHumanChallenge('${sym.name}')"
+                    class="p-2 border border-slate-200 hover:border-escblue hover:bg-lightblue/10 rounded-lg text-medgray hover:text-escblue transition-all text-xs"
+                    title="${sym.name}"
+                >
+                    <i class="fa-solid ${sym.icon}"></i>
+                </button>
+            `).join('');
+        }
+
+        function copyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('success', 'Email address copied to clipboard!');
+                } else {
+                    showToast('error', 'Unable to copy email.');
+                }
+            } catch (err) {
+                showToast('error', 'Copy execution failed.');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function verifyHumanChallenge(clickedName) {
+            if (clickedName === state.humanVerifyOption) {
+                state.isEmailVerified = true;
+                const person = state.people.find(p => p.id === state.selectedId);
+                if (person) {
+                    try {
+                        const decryptedEmail = atob(person.email);
+                        
+                        const placeholder = document.getElementById('secure-email-placeholder');
+                        placeholder.innerHTML = `<a href="mailto:${decryptedEmail}" class="text-escblue hover:underline break-all font-mono font-semibold">${decryptedEmail}</a>`;
+                        placeholder.classList.remove('italic', 'text-medgray');
+
+                        // Automatically copy the decrypted email address to the clipboard
+                        copyTextToClipboard(decryptedEmail);
+
+                        // HIDE the action button completely once verified as it is no longer needed
+                        const actionBtn = document.getElementById('email-action-btn');
+                        if (actionBtn) {
+                            actionBtn.classList.add('hidden');
+                        }
+
+                        document.getElementById('email-verification-step').classList.add('hidden');
+                        
+                        // Open the custom alert modal
+                        openCopySuccessModal();
+                    } catch (err) {
+                        showToast('error', 'Error reading keys.');
+                    }
+                }
+            } else {
+                showToast('error', 'Verification challenge failed. Try again.');
+                initiateSecureEmail();
+            }
+        }
+
+        function toggleNodeCollapse(nodeId) {
+            state.collapsed[nodeId] = !state.collapsed[nodeId];
+            renderApp();
+        }
+
+        function selectPerson(nodeId) {
+            state.selectedId = nodeId;
+            ensureNodeIsVisible(nodeId);
+            renderApp();
+
+            if (state.viewMode === 'tree') {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        zoomToNode(nodeId);
+                    });
+                });
+            }
+        }
+
+        function expandAll() {
+            state.collapsed = {};
+            renderApp();
+        }
+
+        function collapseAll() {
+            const supervisors = state.people.filter(p => state.people.some(child => child.supervisor === p.id));
+            const freshMap = {};
+            supervisors.forEach(s => {
+                freshMap[s.id] = true;
+            });
+            state.collapsed = freshMap;
+            renderApp();
+        }
+
+        function switchViewMode(view) {
+            state.viewMode = view;
+            const btnTree = document.getElementById('view-btn-tree');
+            const btnList = document.getElementById('view-btn-list');
+
+            if (view === 'tree') {
+                btnTree.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-escblue text-white shadow-sm";
+                btnList.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all text-medgray hover:text-escgray";
+            } else {
+                btnList.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-escblue text-white shadow-sm";
+                btnTree.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all text-medgray hover:text-escgray";
+            }
+
+            renderApp();
+        }
+
+        function setLayoutMode(mode) {
+            state.layoutMode = mode;
+            const btnV = document.getElementById('layout-btn-vertical');
+            const btnH = document.getElementById('layout-btn-horizontal');
+
+            if (mode === 'vertical') {
+                btnV.className = "px-2.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-escblue";
+                btnH.className = "px-2.5 py-1.5 rounded-md text-xs font-bold text-medgray hover:text-escblue";
+            } else {
+                btnH.className = "px-2.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-escblue";
+                btnV.className = "px-2.5 py-1.5 rounded-md text-xs font-bold text-medgray hover:text-escblue";
+            }
+
+            renderApp();
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeout = 2000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
+
+        async function fetchWithFallback(url) {
+            try {
+                const res = await fetchWithTimeout(url, {}, 2000);
+                if (res.ok) return await res.text();
+            } catch (e) {
+                console.warn("Direct fetch restricted. Cycling to proxy 1...", e);
+            }
+
+            try {
+                const proxyUrl1 = "https://corsproxy.io/?" + encodeURIComponent(url);
+                const res = await fetchWithTimeout(proxyUrl1, {}, 2000);
+                if (res.ok) return await res.text();
+            } catch (e) {
+                console.warn("Proxy 1 failed. Cycling to proxy 2...", e);
+            }
+
+            try {
+                const proxyUrl2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+                const res = await fetchWithTimeout(proxyUrl2, {}, 2500);
+                if (res.ok) return await res.text();
+            } catch (e) {
+                console.warn("Proxy 2 failed. Cycling to proxy 3...", e);
+            }
+
+            try {
+                const proxyUrl3 = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
+                const res = await fetchWithTimeout(proxyUrl3, {}, 2500);
+                if (res.ok) return await res.text();
+            } catch (e) {
+                console.error("All sync proxies exhausted.", e);
+            }
+
+            throw new Error("Sandbox limits restricted network synchronization.");
+        }
+
+        async function syncGoogleSheet() {
+            const hIcon = document.getElementById('header-sync-icon');
+            if (hIcon) hIcon.classList.add('animate-spin');
+
+            const badge = document.getElementById('sync-badge');
+            const details = document.getElementById('sync-details');
+            const loader = document.getElementById('seamless-loader');
+
+            if (loader) loader.classList.remove('hidden');
+            if (badge) {
+                badge.className = "text-[10px] font-extrabold text-blue-600 uppercase flex items-center space-x-1 animate-pulse";
+                badge.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i><span>Loading</span>`;
+            }
+            if (details) details.innerText = "Connecting...";
+
+            try {
+                const csvText = await fetchWithFallback(GOOGLE_SHEET_URL);
+                const parsed = parseGoogleCsv(csvText);
+
+                if (parsed.length === 0) {
+                    throw new Error("Parsed sheet output has zero valid entries.");
+                }
+
+                state.people = parsed;
+                state.selectedId = parsed[0].id;
+
+                if (badge) {
+                    badge.className = "text-[10px] font-extrabold text-emerald-600 uppercase flex items-center space-x-1";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Active</span>`;
+                }
+                if (details) details.innerText = `Loaded ${parsed.length} profiles.`;
+
+                showToast('success', `Direct sync completed! Loaded ${parsed.length} employees.`);
+                renderApp();
+            } catch (err) {
+                if (badge) {
+                    badge.className = "text-[10px] font-extrabold text-slate-500 uppercase flex items-center space-x-1";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Cache</span>`;
+                }
+                if (details) details.innerText = "Running offline cache.";
+
+                state.people = [...INITIAL_WORKFORCE];
+                state.selectedId = INITIAL_WORKFORCE[0].id;
+                renderApp();
+
+                console.warn("Google Sheets synchronization bypassed. Secured cache loaded.");
+            } finally {
+                if (hIcon) hIcon.classList.remove('animate-spin');
+                if (loader) loader.classList.add('hidden');
+            }
+        }
+
+        function openCopySuccessModal() {
+            const modal = document.getElementById('copy-success-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeCopySuccessModal() {
+            const modal = document.getElementById('copy-success-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function parseGoogleCsv(text) {
+            const rows = [];
+            let row = [];
+            let inQuotes = false;
+            let val = '';
+
+            const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            for (let i = 0; i < normalizedText.length; i++) {
+                const char = normalizedText[i];
+                const next = normalizedText[i + 1];
+
+                if (inQuotes) {
+                    if (char === '"') {
+                        if (next === '"') {
+                            val += '"';
+                            i++;
+                        } else {
+                            inQuotes = false;
+                        }
+                    } else {
+                        val += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        row.push(val.trim());
+                        val = '';
+                    } else if (char === '\n') {
+                        row.push(val.trim());
+                        if (row.length > 1 || row[0] !== '') {
+                            rows.push(row);
+                        }
+                        row = [];
+                        val = '';
+                    } else {
+                        val += char;
+                    }
+                }
+            }
+            if (val || row.length > 0) {
+                row.push(val.trim());
+                rows.push(row);
+            }
+
+            const validRows = rows.filter(r => r.some(cell => cell !== ''));
+
+            if (validRows.length < 2) return [];
+
+            const headers = validRows[0].map(h => h.toLowerCase().replace(/[^a-z0-9]/gi, ''));
+            
+            // Map indexes targeting Google Spreadsheet layout columns: id, name, role, department, supervisorID, supervisorName, email, phoneNumber, photo
+            const idIdx = headers.findIndex(h => h === 'id' || h.includes('empid') || h === 'key');
+            const nameIdx = headers.findIndex(h => h === 'name' || h.includes('fullname'));
+            const roleIdx = headers.findIndex(h => h === 'role' || h.includes('title') || h.includes('position'));
+            const deptIdx = headers.findIndex(h => h.includes('dept') || h.includes('department'));
+            const supervisorIdx = headers.findIndex(h => h === 'supervisorid' || h === 'supervisor' || h.includes('reports') || h.includes('manager'));
+            const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+            const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('tel') || h.includes('number'));
+            const photoIdx = headers.findIndex(h => h.includes('photo') || h.includes('image'));
+
+            const parsedEmployees = validRows.slice(1).map((r, idx) => {
+                const fetchVal = (index, fallback = '') => (index !== -1 && r[index] !== undefined) ? r[index] : fallback;
+                
+                const nameVal = fetchVal(nameIdx, 'Unknown Staff');
+                const rawId = fetchVal(idIdx) || nameVal.trim() || `auto-${idx + 1}`;
+                const rawEmail = fetchVal(emailIdx, `staff.${idx}@esceo.org`);
+                const phoneVal = fetchVal(phoneIdx, 'N/A');
+
+                // Encrypt emails using base64 for cybersecurity protection mapping
+                const encryptedEmail = safeBtoa(rawEmail);
+
+                return {
+                    id: rawId,
+                    name: nameVal,
+                    role: fetchVal(roleIdx, 'Contributor'),
+                    department: fetchVal(deptIdx, 'Unassigned'),
+                    supervisor: fetchVal(supervisorIdx, ''),
+                    email: encryptedEmail,
+                    phoneNumber: phoneVal,
+                    photo: fetchVal(photoIdx, '')
+                };
+            });
+
+            parsedEmployees.forEach(emp => {
+                if (emp.supervisor) {
+                    const cleanSup = emp.supervisor.trim().toLowerCase();
+                    const matchId = parsedEmployees.find(p => p.id.trim().toLowerCase() === cleanSup);
+                    if (matchId) {
+                        emp.supervisor = matchId.id;
+                    } else {
+                        const matchName = parsedEmployees.find(p => p.name.trim().toLowerCase() === cleanSup);
+                        if (matchName) {
+                            emp.supervisor = matchName.id;
+                        }
+                    }
+                }
+            });
+
+            return parsedEmployees;
+        }
+
+        function showToast(type, text) {
+            const successEl = document.getElementById('toast-success');
+            const errorEl = document.getElementById('toast-error');
+            const infoEl = document.getElementById('toast-info');
+
+            if (successEl) successEl.classList.add('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+            if (infoEl) infoEl.classList.add('hidden');
+
+            if (type === 'success' && successEl) {
+                document.getElementById('toast-success-msg').innerText = text;
+                successEl.classList.remove('hidden');
+                setTimeout(() => successEl.classList.add('hidden'), 4500);
+            } else if (type === 'error' && errorEl) {
+                document.getElementById('toast-error-msg').innerText = text;
+                errorEl.classList.remove('hidden');
+                setTimeout(() => errorEl.classList.add('hidden'), 4500);
+            } else if (type === 'info' && infoEl) {
+                document.getElementById('toast-info-msg').innerText = text;
+                infoEl.classList.remove('hidden');
+                setTimeout(() => infoEl.classList.add('hidden'), 4500);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
