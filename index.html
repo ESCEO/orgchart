@@ -345,7 +345,7 @@
                 </div>
 
                 <!-- Floating Canvas View Controls Bar -->
-                <div id="canvas-controls" class="absolute bottom-6 right-6 flex items-center space-x-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200">
+                <div id="canvas-controls" class="absolute bottom-6 right-6 flex items-center space-x-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200 z-20">
                     <button onclick="toggleNavigationTutorial()" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Org Chart Guide">
                         <i class="fa-solid fa-circle-question text-sm"></i>
                     </button>
@@ -364,21 +364,31 @@
                     </button>
                 </div>
 
-                <!-- Floating Tutorial Box Info Card -->
-                <div id="tutorial-box" class="absolute bottom-6 left-6 hidden lg:block bg-white/90 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200 max-w-xs z-20 animate-fade-in">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <h4 class="text-xs font-bold text-navy flex items-center">
-                            <i class="fa-solid fa-circle-info text-escblue mr-1.5"></i> Org Chart Navigation
-                        </h4>
-                        <button onclick="closeNavigationTutorial()" class="text-lightgray hover:text-medgray p-1 transition-colors rounded hover:bg-slate-100" title="Dismiss Guide">
-                            <i class="fa-solid fa-xmark text-xs leading-none"></i>
-                        </button>
+                <!-- Movable & Minimizable Floating Org Chart Navigation Panel -->
+                <div id="org-chart-navigation" class="absolute z-20 select-none" style="bottom: 24px; left: 24px;">
+                    <!-- Minimized State (? in a small circle) -->
+                    <button id="nav-minimized" onclick="toggleNavState(false)" class="hidden w-11 h-11 rounded-full bg-white hover:bg-slate-50 text-escblue border border-slate-200 shadow-xl flex items-center justify-center font-bold cursor-grab active:cursor-grabbing focus:outline-none transition-all duration-150" title="Open Org Chart Navigation">
+                        <i class="fa-solid fa-question text-base pointer-events-none"></i>
+                    </button>
+                    
+                    <!-- Expanded State (Card Details) -->
+                    <div id="nav-expanded" class="bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-xl border border-slate-200 max-w-xs w-72 animate-fade-in">
+                        <!-- Header (Acts as the primary Drag Handle, indicated by grabbing cursor) -->
+                        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-100 drag-handle cursor-grab active:cursor-grabbing">
+                            <h4 class="text-xs font-bold text-navy flex items-center pointer-events-none">
+                                <i class="fa-solid fa-compass text-escblue mr-1.5"></i> Org Chart Navigation
+                            </h4>
+                            <button onclick="toggleNavState(true)" class="text-lightgray hover:text-medgray p-1 transition-colors rounded hover:bg-slate-100 focus:outline-none" title="Minimize Guide">
+                                <i class="fa-solid fa-minus text-[10px] leading-none"></i>
+                            </button>
+                        </div>
+                        <ul class="text-[10px] text-medgray space-y-1 list-disc pl-4">
+                            <li>Left-click and hold anywhere on the canvas background to Pan/Drag the layout map.</li>
+                            <li>Click the expandable arrow arrows below nodes to toggle visual reports branches.</li>
+                        </ul>
                     </div>
-                    <ul class="text-[10px] text-medgray space-y-1 list-disc pl-4">
-                        <li>Left-click and hold anywhere on the canvas background to Pan/Drag the layout map.</li>
-                        <li>Click the expandable arrow buttons below the nodes to toggle visual reports branches.</li>
-                    </ul>
                 </div>
+
             </div>
         </main>
     </div>
@@ -569,7 +579,6 @@
 
         /**
          * Converts standard Google Drive file links to high-performance, CORS-friendly direct rendering URLs.
-         * Bypasses the 403 Forbidden errors commonly caused on production domains like GitHub Pages.
          */
         function convertGoogleDriveUrl(url) {
             if (!url) return '';
@@ -581,8 +590,6 @@
             const match = trimmed.match(idRegex);
             if (match && match[1]) {
                 const fileId = match[1];
-                // Google Drive's thumbnail API is fully supported on public origins (like GitHub Pages)
-                // We request a 500px wide image ('&sz=w500') to balance premium visual clarity and fast loading.
                 return `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
             }
             return trimmed;
@@ -599,6 +606,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initializeInteractiveCanvas();
+            initializeDraggableNavigation();
             renderApp();
             resetZoomAndPan();
             syncGoogleSheet();
@@ -608,7 +616,7 @@
             const workspace = document.getElementById('canvas-workspace');
 
             workspace.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
+                if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
                 state.isDraggingCanvas = true;
                 const mover = document.getElementById('canvas-mover');
                 if (mover) mover.classList.remove('canvas-transition'); 
@@ -631,8 +639,159 @@
             });
 
             workspace.addEventListener('selectstart', (e) => {
-                if (state.isDraggingCanvas) e.preventDefault();
+                if (state.isDraggingCanvas || e.target.closest('#org-chart-navigation')) e.preventDefault();
             });
+        }
+
+        /**
+         * Initializes drag logic for the floating Org Chart Navigation card and circle button
+         */
+        function initializeDraggableNavigation() {
+            const navContainer = document.getElementById('org-chart-navigation');
+            makeElementDraggable(navContainer, 'drag-handle');
+        }
+
+        /**
+         * Configures robust drag event listeners with viewport boundaries clamping
+         */
+        function makeElementDraggable(el, handleClass) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            const minHandle = document.getElementById('nav-minimized');
+            const expHandle = el.querySelector('.' + handleClass);
+
+            if (minHandle) {
+                minHandle.onmousedown = dragMouseDown;
+                minHandle.ontouchstart = dragTouchStart;
+            }
+            if (expHandle) {
+                expHandle.onmousedown = dragMouseDown;
+                expHandle.ontouchstart = dragTouchStart;
+            }
+
+            function dragMouseDown(e) {
+                if (e.target.closest('button') && !e.target.closest('#nav-minimized')) return;
+                e.preventDefault();
+                
+                convertToAbsolutePixels();
+
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function dragTouchStart(e) {
+                if (e.target.closest('button') && !e.target.closest('#nav-minimized')) return;
+                
+                convertToAbsolutePixels();
+
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+
+            function convertToAbsolutePixels() {
+                const rect = el.getBoundingClientRect();
+                const pRect = el.parentElement.getBoundingClientRect();
+                
+                const topPx = rect.top - pRect.top;
+                const leftPx = rect.left - pRect.left;
+                
+                el.style.bottom = 'auto';
+                el.style.right = 'auto';
+                el.style.top = topPx + 'px';
+                el.style.left = leftPx + 'px';
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                updatePosition(el.offsetTop - pos2, el.offsetLeft - pos1);
+            }
+
+            function elementTouchDrag(e) {
+                pos1 = pos3 - e.touches[0].clientX;
+                pos2 = pos4 - e.touches[0].clientY;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                
+                updatePosition(el.offsetTop - pos2, el.offsetLeft - pos1);
+            }
+
+            function updatePosition(top, left) {
+                const parent = el.parentElement;
+                const pRect = parent.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
+                
+                const maxTop = pRect.height - elRect.height;
+                const maxLeft = pRect.width - elRect.width;
+                
+                const clampedTop = Math.max(0, Math.min(top, maxTop));
+                const clampedLeft = Math.max(0, Math.min(left, maxLeft));
+                
+                el.style.top = clampedTop + "px";
+                el.style.left = clampedLeft + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
+        }
+
+        /**
+         * Swaps the layout view of the navigation panel (Minimizes to circle or expands to card)
+         */
+        function toggleNavState(minimize) {
+            const minEl = document.getElementById('nav-minimized');
+            const expEl = document.getElementById('nav-expanded');
+            const parentEl = document.getElementById('org-chart-navigation');
+            
+            // Get current dimensions and calculate center of current element
+            const oldRect = parentEl.getBoundingClientRect();
+            const pRect = parentEl.parentElement.getBoundingClientRect();
+            
+            const centerX = oldRect.left + oldRect.width / 2 - pRect.left;
+            const centerY = oldRect.top + oldRect.height / 2 - pRect.top;
+
+            if (minimize) {
+                minEl.classList.remove('hidden');
+                expEl.classList.add('hidden');
+            } else {
+                minEl.classList.add('hidden');
+                expEl.classList.remove('hidden');
+            }
+
+            // Immediately clear positioning to absolute pixels based on center
+            const newRect = parentEl.getBoundingClientRect();
+            
+            let left = centerX - newRect.width / 2;
+            let top = centerY - newRect.height / 2;
+            
+            const maxTop = pRect.height - newRect.height;
+            const maxLeft = pRect.width - newRect.width;
+            
+            top = Math.max(0, Math.min(top, maxTop));
+            left = Math.max(0, Math.min(left, maxLeft));
+            
+            parentEl.style.bottom = 'auto';
+            parentEl.style.right = 'auto';
+            parentEl.style.top = top + "px";
+            parentEl.style.left = left + "px";
+        }
+
+        function toggleNavigationTutorial() {
+            const expEl = document.getElementById('nav-expanded');
+            const isMinimized = expEl.classList.contains('hidden');
+            toggleNavState(!isMinimized);
         }
 
         function updateCanvasTransform() {
@@ -911,7 +1070,7 @@
                                 <div class="text-right text-[10px] text-lightgray space-y-1 self-start">
                                     <p class="font-semibold text-medgray">Supervisor:</p>
                                     <p class="font-bold text-navy truncate max-w-[100px]">${escapeHtml(supervisorName)}</p>
-                                </div>
+                                end text-right -->
                             </div>
                         `;
                     }).join('');
@@ -1327,18 +1486,6 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        function closeNavigationTutorial() {
-            const box = document.getElementById('tutorial-box');
-            if (box) box.classList.add('hidden');
-        }
-
-        function toggleNavigationTutorial() {
-            const box = document.getElementById('tutorial-box');
-            if (box) {
-                box.classList.toggle('hidden');
-            }
-        }
-
         function parseGoogleCsv(text) {
             const rows = [];
             let row = [];
@@ -1409,7 +1556,6 @@
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
                 const rawPhotoUrl = fetchVal(photoIdx, '');
                 
-                // Convert raw Google Drive URLs to production-optimized, cookie-less thumbnail urls
                 const formattedPhotoUrl = convertGoogleDriveUrl(rawPhotoUrl);
 
                 const encryptedEmail = safeBtoa(rawEmail);
