@@ -171,7 +171,9 @@
                 <!-- Selected Employee Profile Inspector Detail Card -->
                 <div id="inspector-card" class="hidden bg-slate-50 rounded-xl border border-lightgray/20 p-5 space-y-5 shadow-inner animate-fade-in flex-1">
                     <div class="flex items-start space-x-4">
-                        <img id="insp-photo" src="https://placehold.co/150" alt="" class="w-16 h-16 rounded-xl object-cover bg-white shadow border border-slate-150">
+                        <div id="insp-photo-container" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow border border-slate-150">
+                            <!-- Initials or Image dynamic rendering inside Javascript -->
+                        </div>
                         <div class="flex-1 min-w-0">
                             <h3 id="insp-name" class="font-extrabold text-navy text-base truncate">Name</h3>
                             <p id="insp-role" class="text-xs text-escblue font-bold mt-0.5">Role / Position</p>
@@ -378,8 +380,8 @@
             <span>&copy; 2026 Educational Service Center of Eastern Ohio. All rights reserved.</span>
         </div>
         <div class="flex items-center space-x-1">
-            <span class="italic">powered by</span>
-            <span>ESCEO Technology</span>
+            <span class="italic">powered by </span>
+            <span class="font-semibold text-slate-500">ESCEO Technology</span>
         </div>
     </footer>
 
@@ -401,11 +403,53 @@
         </div>
     </div>
 
+    <!-- Animated Slow Sync Warning Overlay Modal (Appears when connection is taking too long) -->
+    <div id="slow-sync-modal" class="hidden fixed inset-0 bg-navy/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 mb-4 relative">
+                <div class="absolute inset-0 rounded-full border-4 border-indigo-100 border-t-escblue animate-spin"></div>
+                <i class="fa-solid fa-cloud-arrow-down text-escblue text-xl animate-bounce"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-navy">Establishing Secure Connection</h3>
+            <p class="text-xs text-medgray mt-2 leading-relaxed">
+                Establishing handshake with the live Google Sheet database. Please stand by while we optimize directory structures.
+            </p>
+            <!-- Animated Loading Bar Indicators -->
+            <div class="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden relative">
+                <div class="bg-gradient-to-r from-escblue to-lightblue h-1.5 rounded-full absolute left-0 top-0 bottom-0 animate-pulse" style="width: 75%;"></div>
+            </div>
+            <div class="mt-3 flex items-center justify-center space-x-1.5 text-[10px] text-escblue font-bold tracking-wider uppercase">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+                <span>Verifying Security Tokens...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Blocked Warning Notification Modal (Forces Live Sync connection) -->
+    <div id="cache-warning-modal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-rose-50 text-rose-600 mb-4 shadow-sm border border-rose-200">
+                <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-navy">Connection Required</h3>
+            <p class="text-xs text-medgray mt-2 leading-relaxed">
+                We were unable to synchronize with your live Google Sheet database. Live access is required to view the latest organizational directory data.
+            </p>
+            <div class="mt-5">
+                <!-- Strict sync action button to trigger live database rechecks -->
+                <button onclick="retrySyncFromModal()" class="w-full py-2.5 bg-escblue hover:bg-navy text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-arrows-rotate" id="modal-sync-icon"></i>
+                    <span>Retry Live Connection</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // HARDCODED DATABASE ENDPOINT URL
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2KRBGym05tdr2yk__Lhsb63FoVddLnVch6UNiMbhqGo7xN6bcWGLOq8DFXMRVN7-MqFIQCBhh1UU8/pub?output=csv";
 
-        // Preloaded complete workforce cache (Initial backup rendered cleanly while loading)
+        // Preloaded complete workforce cache (Used purely as a fallback placeholder dataset)
         const INITIAL_WORKFORCE = [
             { id: "Sarah Jenkins", name: "Sarah Jenkins", role: "Chief Executive Officer", supervisor: "", department: "Executive", email: "c2FyYWguamVua2luc0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0101", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" },
             { id: "Michael Chang", name: "Michael Chang", role: "VP of Engineering", supervisor: "Sarah Jenkins", department: "Engineering", email: "bWljaGFlbC5jaGFuZ0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0102", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
@@ -413,10 +457,10 @@
             { id: "David Vance", name: "David Vance", role: "VP of Marketing", supervisor: "Sarah Jenkins", department: "Marketing", email: "ZGF2aWQudmFuY2VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0104", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200" },
             { id: "Amina Yusuf", name: "Amina Yusuf", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "YW1pbmEueXVzdWZAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0105", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" },
             { id: "Liam O'Connor", name: "Liam O'Connor", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "bGlhbS5vY29ubm9yQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0106", photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200" },
-            { id: "Chloe Mercer", name: "Chloe Mercer", role: "Lead Product Designer", supervisor: "Elena Rostova", department: "Product", email: "Y2hsb2UubWVyY2VyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0107", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200" },
+            { id: "Chloe Mercer", name: "Chloe Mercer", role: "Lead Product Designer", supervisor: "Elena Rostova", department: "Product", email: "Y2hsb2UubWVyY2VyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0107", photo: "" },
             { id: "Marcus Brody", name: "Marcus Brody", role: "Senior Product Manager", supervisor: "Elena Rostova", department: "Product", email: "bWFyY3VzLmJyb2R5QGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0108", photo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200" },
             { id: "Jessica Taylor", name: "Jessica Taylor", role: "Growth Lead", supervisor: "David Vance", department: "Marketing", email: "amVzc2ljYS50YXlsb3VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0109", photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" },
-            { id: "Rajesh Kumar", name: "Rajesh Kumar", role: "DevOps Lead", supervisor: "Amina Yusuf", department: "Engineering", email: "cmFqZXNoLmt1bWFyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0110", photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200" }
+            { id: "Rajesh Kumar", name: "Rajesh Kumar", role: "DevOps Lead", supervisor: "Amina Yusuf", department: "Engineering", email: "cmFqZXNoLmt1bWFyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0110", photo: "" }
         ];
 
         // Core Application State Managers
@@ -427,13 +471,113 @@
             selectedId: null,
             zoom: 1,
             pan: { x: 0, y: 0 },
-            layoutMode: "vertical", // 'vertical' or 'horizontal'
-            viewMode: "tree", // 'tree' or 'list'
+            layoutMode: "vertical", 
+            viewMode: "tree", 
             isDraggingCanvas: false,
             dragStart: { x: 0, y: 0 },
             isEmailVerified: false,
             humanVerifyOption: null
         };
+
+        /**
+         * Pulls elegant 2-character initials from dynamic names
+         */
+        function getInitials(name) {
+            if (!name) return '??';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        /**
+         * Builds structured HTML containing the correct avatar container (image or colorized initials)
+         */
+        function getAvatarHtml(photoUrl, name, sizeClasses = 'w-12 h-12 text-sm', shapeClass = 'rounded-full') {
+            const hasPhoto = photoUrl && photoUrl.trim() !== '' && !photoUrl.includes('placehold.co') && photoUrl.toLowerCase() !== 'null' && photoUrl.toLowerCase() !== 'undefined';
+            
+            if (hasPhoto) {
+                return `
+                    <div class="relative ${sizeClasses} ${shapeClass} overflow-hidden border-2 border-white shadow bg-slate-100 flex items-center justify-center shrink-0">
+                        <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(name)}" class="w-full h-full object-cover" onerror="showInitialsFallback(this, '${escapeHtml(name)}', '${shapeClass}')">
+                    </div>
+                `;
+            } else {
+                return getInitialsDiv(name, sizeClasses, shapeClass);
+            }
+        }
+
+        /**
+         * Generates deterministic vibrant initials div container based on a quick hash string
+         */
+        function getInitialsDiv(name, sizeClasses, shapeClass = 'rounded-full') {
+            const initials = getInitials(name);
+            const colors = [
+                'bg-navy text-white border-navy',
+                'bg-escblue text-white border-escblue',
+                'bg-indigo-600 text-white border-indigo-600',
+                'bg-slate-600 text-white border-slate-600',
+                'bg-emerald-700 text-white border-emerald-700'
+            ];
+            
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const colorClass = colors[Math.abs(hash) % colors.length];
+
+            return `
+                <div class="${sizeClasses} ${shapeClass} ${colorClass} flex items-center justify-center font-extrabold tracking-wider select-none shadow border-2">
+                    ${initials}
+                </div>
+            `;
+        }
+
+        /**
+         * Safe fallback triggered if an image load breaks at runtime
+         */
+        function showInitialsFallback(imgElement, name, shapeClass = 'rounded-full') {
+            const container = imgElement.parentElement;
+            if (container) {
+                const initials = getInitials(name);
+                const colors = [
+                    'bg-navy text-white border-navy',
+                    'bg-escblue text-white border-escblue',
+                    'bg-indigo-600 text-white border-indigo-600',
+                    'bg-slate-600 text-white border-slate-600',
+                    'bg-emerald-700 text-white border-emerald-700'
+                ];
+                let hash = 0;
+                for (let i = 0; i < name.length; i++) {
+                    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const colorClass = colors[Math.abs(hash) % colors.length];
+                
+                container.className = `relative ${container.className.replace(/rounded-\S+/, '')} ${shapeClass} overflow-hidden border-2 border-white shadow bg-slate-100 flex items-center justify-center shrink-0`;
+                container.innerHTML = `
+                    <div class="w-full h-full ${shapeClass} ${colorClass} flex items-center justify-center font-extrabold tracking-wider select-none">
+                        ${initials}
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Converts standard Google Drive file links to raw direct rendering image URLs
+         */
+        function convertGoogleDriveUrl(url) {
+            if (!url) return '';
+            const trimmed = url.trim();
+            if (!trimmed.includes('drive.google.com') && !trimmed.includes('docs.google.com')) {
+                return trimmed;
+            }
+            const idRegex = /(?:\/d\/|id=)([a-zA-Z0-9_-]{25,})/;
+            const match = trimmed.match(idRegex);
+            if (match && match[1]) {
+                const fileId = match[1];
+                return `https://lh3.googleusercontent.com/d/${fileId}`;
+            }
+            return trimmed;
+        }
 
         // Secure UTF-8 to Base64 encoder helper
         function safeBtoa(str) {
@@ -444,13 +588,10 @@
             }
         }
 
-        // Main initialization entrypoint
         window.addEventListener('DOMContentLoaded', () => {
             initializeInteractiveCanvas();
             renderApp();
             resetZoomAndPan();
-            
-            // Auto Trigger Database Sync immediately on load
             syncGoogleSheet();
         });
 
@@ -461,7 +602,7 @@
                 if (e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
                 state.isDraggingCanvas = true;
                 const mover = document.getElementById('canvas-mover');
-                if (mover) mover.classList.remove('canvas-transition'); // Disable animations during real-time manual drags
+                if (mover) mover.classList.remove('canvas-transition'); 
                 state.dragStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
             });
 
@@ -477,7 +618,7 @@
             window.addEventListener('mouseup', () => {
                 state.isDraggingCanvas = false;
                 const mover = document.getElementById('canvas-mover');
-                if (mover) mover.classList.add('canvas-transition'); // Re-enable smooth transition easing
+                if (mover) mover.classList.add('canvas-transition'); 
             });
 
             workspace.addEventListener('selectstart', (e) => {
@@ -516,14 +657,11 @@
             const moverRect = mover.getBoundingClientRect();
             const elRect = el.getBoundingClientRect();
             
-            // Calculate coordinates inside the mover container by unscaling the offset bounding values
             const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
             const localY = (elRect.top + elRect.height / 2 - moverRect.top) / state.zoom;
             
-            // Set scale index directly to 100% crisp reading layout
             state.zoom = 1.0;
             
-            // Math translation variables centering local points directly in screen center bounds
             state.pan.x = (viewRect.width / 2) - (localX * state.zoom);
             state.pan.y = (viewRect.height / 2) - (localY * state.zoom);
             
@@ -565,7 +703,6 @@
             renderApp();
 
             if (firstMatchId && state.viewMode === 'tree') {
-                // Ensure nested layout cycles trigger after browser parses updated node expands
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         zoomToNode(firstMatchId);
@@ -628,8 +765,8 @@
                             </span>
                             
                             <div class="relative mb-2">
-                                <img src="${escapeHtml(node.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(node.name)}" alt="${escapeHtml(node.name)}" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow bg-slate-100" onerror="this.src='https://placehold.co/100x100/eaeaea/888888?text=Profile'">
-                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                                ${getAvatarHtml(node.photo, node.name, 'w-12 h-12 text-xs', 'rounded-full')}
+                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full z-10"></span>
                             </div>
 
                             <h4 class="font-bold text-navy text-sm truncate w-full">${escapeHtml(node.name)}</h4>
@@ -754,7 +891,7 @@
 
                         return `
                             <div onclick="selectPerson('${p.id}')" class="bg-white p-4 rounded-xl border border-lightgray/20 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center space-x-4 animate-fade-in">
-                                <img src="${escapeHtml(p.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(p.name)}" alt="" class="w-12 h-12 rounded-full object-cover bg-slate-50 border border-slate-150" onerror="this.src='https://placehold.co/100x100/eaeaea/888888?text=Profile'">
+                                ${getAvatarHtml(p.photo, p.name, 'w-12 h-12 text-xs', 'rounded-full')}
                                 <div class="flex-1 min-w-0">
                                     <span class="text-[9px] font-bold text-escblue uppercase tracking-widest block mb-0.5">
                                         ${escapeHtml(p.department)}
@@ -806,9 +943,12 @@
             document.getElementById('insp-name').innerText = person.name;
             document.getElementById('insp-role').innerText = person.role || 'Contributor';
             document.getElementById('insp-dept').innerText = person.department;
-            document.getElementById('insp-photo').src = person.photo || 'https://placehold.co/150x150/eaeaea/888888?text=' + encodeURIComponent(person.name);
+            
+            const inspPhotoContainer = document.getElementById('insp-photo-container');
+            if (inspPhotoContainer) {
+                inspPhotoContainer.innerHTML = getAvatarHtml(person.photo, person.name, 'w-16 h-16 text-lg', 'rounded-xl');
+            }
 
-            // Re-apply secure/cyber-protection configuration for emails
             resetEmailVerificationState();
 
             document.getElementById('insp-phone').innerText = person.phoneNumber || 'N/A';
@@ -820,7 +960,7 @@
                 if (supervisor) {
                     supContainer.innerHTML = `
                         <button onclick="selectPerson('${supervisor.id}')" class="flex items-center space-x-2 w-full text-left hover:text-escblue transition-colors">
-                            <img src="${escapeHtml(supervisor.photo) || 'https://placehold.co/100x100/eaeaea/888888?text=' + encodeURIComponent(supervisor.name)}" class="w-6 h-6 rounded-full object-cover">
+                            ${getAvatarHtml(supervisor.photo, supervisor.name, 'w-6 h-6 text-[8px]', 'rounded-full')}
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs font-bold truncate text-navy">${escapeHtml(supervisor.name)}</p>
                                 <p class="text-[9px] text-medgray truncate">${escapeHtml(supervisor.role || 'Supervisor')}</p>
@@ -932,18 +1072,14 @@
                         placeholder.innerHTML = `<a href="mailto:${decryptedEmail}" class="text-escblue hover:underline break-all font-mono font-semibold">${decryptedEmail}</a>`;
                         placeholder.classList.remove('italic', 'text-medgray');
 
-                        // Automatically copy the decrypted email address to the clipboard
                         copyTextToClipboard(decryptedEmail);
 
-                        // HIDE the action button completely once verified as it is no longer needed
                         const actionBtn = document.getElementById('email-action-btn');
                         if (actionBtn) {
                             actionBtn.classList.add('hidden');
                         }
 
                         document.getElementById('email-verification-step').classList.add('hidden');
-                        
-                        // Open the custom alert modal
                         openCopySuccessModal();
                     } catch (err) {
                         showToast('error', 'Error reading keys.');
@@ -963,7 +1099,12 @@
         function selectPerson(nodeId) {
             state.selectedId = nodeId;
             ensureNodeIsVisible(nodeId);
-            renderApp();
+            
+            if (state.viewMode === 'list') {
+                switchViewMode('tree');
+            } else {
+                renderApp();
+            }
 
             if (state.viewMode === 'tree') {
                 requestAnimationFrame(() => {
@@ -1021,7 +1162,7 @@
             renderApp();
         }
 
-        async function fetchWithTimeout(url, options = {}, timeout = 2000) {
+        async function fetchWithTimeout(url, options = {}, timeout = 3500) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             try {
@@ -1036,7 +1177,7 @@
 
         async function fetchWithFallback(url) {
             try {
-                const res = await fetchWithTimeout(url, {}, 2000);
+                const res = await fetchWithTimeout(url, {}, 3500);
                 if (res.ok) return await res.text();
             } catch (e) {
                 console.warn("Direct fetch restricted. Cycling to proxy 1...", e);
@@ -1044,7 +1185,7 @@
 
             try {
                 const proxyUrl1 = "https://corsproxy.io/?" + encodeURIComponent(url);
-                const res = await fetchWithTimeout(proxyUrl1, {}, 2000);
+                const res = await fetchWithTimeout(proxyUrl1, {}, 3500);
                 if (res.ok) return await res.text();
             } catch (e) {
                 console.warn("Proxy 1 failed. Cycling to proxy 2...", e);
@@ -1052,7 +1193,7 @@
 
             try {
                 const proxyUrl2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-                const res = await fetchWithTimeout(proxyUrl2, {}, 2500);
+                const res = await fetchWithTimeout(proxyUrl2, {}, 4000);
                 if (res.ok) return await res.text();
             } catch (e) {
                 console.warn("Proxy 2 failed. Cycling to proxy 3...", e);
@@ -1060,7 +1201,7 @@
 
             try {
                 const proxyUrl3 = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
-                const res = await fetchWithTimeout(proxyUrl3, {}, 2500);
+                const res = await fetchWithTimeout(proxyUrl3, {}, 4000);
                 if (res.ok) return await res.text();
             } catch (e) {
                 console.error("All sync proxies exhausted.", e);
@@ -1084,6 +1225,11 @@
             }
             if (details) details.innerText = "Connecting...";
 
+            // Start a timer. If synchronization takes longer than 1500ms, reveal the slow connection blocker.
+            const slowSyncTimer = setTimeout(() => {
+                showSlowSyncModal();
+            }, 1500);
+
             try {
                 const csvText = await fetchWithFallback(GOOGLE_SHEET_URL);
                 const parsed = parseGoogleCsv(csvText);
@@ -1102,23 +1248,40 @@
                 if (details) details.innerText = `Loaded ${parsed.length} profiles.`;
 
                 showToast('success', `Direct sync completed! Loaded ${parsed.length} employees.`);
+                closeCacheWarningModal(); // Automatically dismiss the blocker modal on a successful sync
                 renderApp();
             } catch (err) {
                 if (badge) {
-                    badge.className = "text-[10px] font-extrabold text-slate-500 uppercase flex items-center space-x-1";
-                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Cache</span>`;
+                    badge.className = "text-[10px] font-extrabold text-red-600 uppercase flex items-center space-x-1";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i><span>Offline</span>`;
                 }
-                if (details) details.innerText = "Running offline cache.";
+                if (details) details.innerText = "Sync failure.";
 
-                state.people = [...INITIAL_WORKFORCE];
-                state.selectedId = INITIAL_WORKFORCE[0].id;
+                // Zero-out active data structures to prevent offline browsing leaks
+                state.people = [];
+                state.selectedId = null;
                 renderApp();
 
-                console.warn("Google Sheets synchronization bypassed. Secured cache loaded.");
+                console.error("Google Sheets synchronization bypassed. Blocker interface active.");
+                openCacheWarningModal(); // Force open the connection blocker modal
             } finally {
+                // Clear the long-sync warning timer and ensure warning modal is closed
+                clearTimeout(slowSyncTimer);
+                hideSlowSyncModal();
+
                 if (hIcon) hIcon.classList.remove('animate-spin');
                 if (loader) loader.classList.add('hidden');
             }
+        }
+
+        function showSlowSyncModal() {
+            const modal = document.getElementById('slow-sync-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function hideSlowSyncModal() {
+            const modal = document.getElementById('slow-sync-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function openCopySuccessModal() {
@@ -1129,6 +1292,26 @@
         function closeCopySuccessModal() {
             const modal = document.getElementById('copy-success-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        function openCacheWarningModal() {
+            const modal = document.getElementById('cache-warning-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeCacheWarningModal() {
+            const modal = document.getElementById('cache-warning-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function retrySyncFromModal() {
+            const modalIcon = document.getElementById('modal-sync-icon');
+            if (modalIcon) modalIcon.classList.add('animate-spin');
+            
+            // Re-attempt Google Sheet Sync
+            syncGoogleSheet().finally(() => {
+                if (modalIcon) modalIcon.classList.remove('animate-spin');
+            });
         }
 
         function parseGoogleCsv(text) {
@@ -1183,7 +1366,6 @@
 
             const headers = validRows[0].map(h => h.toLowerCase().replace(/[^a-z0-9]/gi, ''));
             
-            // Map indexes targeting Google Spreadsheet layout columns: id, name, role, department, supervisorID, supervisorName, email, phoneNumber, photo
             const idIdx = headers.findIndex(h => h === 'id' || h.includes('empid') || h === 'key');
             const nameIdx = headers.findIndex(h => h === 'name' || h.includes('fullname'));
             const roleIdx = headers.findIndex(h => h === 'role' || h.includes('title') || h.includes('position'));
@@ -1200,8 +1382,9 @@
                 const rawId = fetchVal(idIdx) || nameVal.trim() || `auto-${idx + 1}`;
                 const rawEmail = fetchVal(emailIdx, `staff.${idx}@esceo.org`);
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
+                const rawPhotoUrl = fetchVal(photoIdx, '');
+                const formattedPhotoUrl = convertGoogleDriveUrl(rawPhotoUrl);
 
-                // Encrypt emails using base64 for cybersecurity protection mapping
                 const encryptedEmail = safeBtoa(rawEmail);
 
                 return {
@@ -1212,7 +1395,7 @@
                     supervisor: fetchVal(supervisorIdx, ''),
                     email: encryptedEmail,
                     phoneNumber: phoneVal,
-                    photo: fetchVal(photoIdx, '')
+                    photo: formattedPhotoUrl
                 };
             });
 
