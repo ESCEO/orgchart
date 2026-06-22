@@ -604,6 +604,55 @@
             }
         }
 
+        /**
+         * Compares two employee objects alphabetically by last name, then first name.
+         */
+        function compareNames(a, b) {
+            const getNames = (p) => {
+                const parts = p.name.trim().split(/\s+/);
+                const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+                return { last: last.toLowerCase(), first: first.toLowerCase() };
+            };
+            const na = getNames(a);
+            const nb = getNames(b);
+            if (na.last !== nb.last) {
+                return na.last.localeCompare(nb.last);
+            }
+            return na.first.localeCompare(nb.first);
+        }
+
+        /**
+         * Generates the HTML layout for a single employee card inside the Directory grid.
+         */
+        function renderListCard(p) {
+            let supervisorName = "N/A";
+            if (p.supervisor) {
+                const supObj = state.people.find(sup => sup.id === p.supervisor);
+                if (supObj) supervisorName = supObj.name;
+            }
+
+            return `
+                <div onclick="selectPerson('${p.id}')" class="bg-white p-4 rounded-xl border border-lightgray/20 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center space-x-4 animate-fade-in">
+                    ${getAvatarHtml(p.photo, p.name, 'w-12 h-12 text-xs', 'rounded-full')}
+                    <div class="flex-1 min-w-0">
+                        <span class="text-[9px] font-bold text-escblue uppercase tracking-widest block mb-0.5">
+                            ${escapeHtml(p.department)}
+                        </span>
+                        <h4 class="font-extrabold text-sm truncate text-navy">${escapeHtml(p.name)}</h4>
+                        <p class="text-xs text-medgray truncate">${escapeHtml(p.role || 'Contributor')}</p>
+                        <div class="flex flex-col mt-1 space-y-0.5 text-[10px] text-lightgray">
+                            <span><i class="fa-solid fa-phone mr-1"></i> ${escapeHtml(p.phoneNumber || 'N/A')}</span>
+                        </div>
+                    </div>
+                    <div class="text-right text-[10px] text-lightgray space-y-1 self-start shrink-0">
+                        <p class="font-semibold text-medgray">Supervisor:</p>
+                        <p class="font-bold text-navy truncate max-w-[100px]">${escapeHtml(supervisorName)}</p>
+                    </div>
+                </div>
+            `;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initializeInteractiveCanvas();
             initializeDraggableNavigation();
@@ -1046,8 +1095,8 @@
             } else {
                 document.getElementById('tree-view-canvas').classList.add('hidden');
                 document.getElementById('directory-list-view').classList.remove('hidden');
-                document.getElementById('canvas-controls').classList.add('hidden');
-                document.getElementById('tree-options').classList.add('hidden');
+                document.getElementById('canvas-controls').add('hidden');
+                document.getElementById('tree-options').add('hidden');
 
                 const queryActive = state.searchQuery;
                 const matches = state.people.filter(p => {
@@ -1060,35 +1109,44 @@
 
                 document.getElementById('directory-total-badge').innerText = `Showing ${matches.length} of ${state.people.length} employees`;
 
+                // Build unique supervisor IDs across full dataset to classify users stably
+                const supervisorIds = new Set(state.people.map(p => p.supervisor).filter(id => id && id.trim() !== ''));
+
+                // Segment the matches list
+                const supervisors = matches.filter(p => supervisorIds.has(p.id));
+                const users = matches.filter(p => !supervisorIds.has(p.id));
+
+                // Sort both categories alphabetically by Last Name, then First Name
+                supervisors.sort(compareNames);
+                users.sort(compareNames);
+
                 const container = document.getElementById('directory-cards-container');
                 if (matches.length > 0) {
-                    container.innerHTML = matches.map(p => {
-                        let supervisorName = "N/A";
-                        if (p.supervisor) {
-                            const supObj = state.people.find(sup => sup.id === p.supervisor);
-                            if (supObj) supervisorName = supObj.name;
-                        }
+                    let htmlContent = '';
 
-                        return `
-                            <div onclick="selectPerson('${p.id}')" class="bg-white p-4 rounded-xl border border-lightgray/20 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center space-x-4 animate-fade-in">
-                                ${getAvatarHtml(p.photo, p.name, 'w-12 h-12 text-xs', 'rounded-full')}
-                                <div class="flex-1 min-w-0">
-                                    <span class="text-[9px] font-bold text-escblue uppercase tracking-widest block mb-0.5">
-                                        ${escapeHtml(p.department)}
-                                    </span>
-                                    <h4 class="font-extrabold text-sm truncate text-navy">${escapeHtml(p.name)}</h4>
-                                    <p class="text-xs text-medgray truncate">${escapeHtml(p.role || 'Contributor')}</p>
-                                    <div class="flex flex-col mt-1 space-y-0.5 text-[10px] text-lightgray">
-                                        <span><i class="fa-solid fa-phone mr-1"></i> ${escapeHtml(p.phoneNumber || 'N/A')}</span>
-                                    </div>
-                                </div>
-                                <div class="text-right text-[10px] text-lightgray space-y-1 self-start">
-                                    <p class="font-semibold text-medgray">Supervisor:</p>
-                                    <p class="font-bold text-navy truncate max-w-[100px]">${escapeHtml(supervisorName)}</p>
-                                </div>
+                    if (supervisors.length > 0) {
+                        htmlContent += `
+                            <div class="col-span-full mt-4 mb-1">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-escblue flex items-center border-b border-slate-200/60 pb-1.5">
+                                    <i class="fa-solid fa-user-tie mr-2 text-[13px]"></i> Supervisors (${supervisors.length})
+                                </h3>
                             </div>
                         `;
-                    }).join('');
+                        htmlContent += supervisors.map(p => renderListCard(p)).join('');
+                    }
+
+                    if (users.length > 0) {
+                        htmlContent += `
+                            <div class="col-span-full mt-6 mb-1">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-lightgray flex items-center border-b border-slate-200/60 pb-1.5">
+                                    <i class="fa-solid fa-user mr-2 text-[12px]"></i> Staff (${users.length})
+                                </h3>
+                            </div>
+                        `;
+                        htmlContent += users.map(p => renderListCard(p)).join('');
+                    }
+
+                    container.innerHTML = htmlContent;
                 } else {
                     container.innerHTML = `
                         <div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
@@ -1641,3 +1699,6 @@
     </script>
 </body>
 </html>
+```
+
+The sorting algorithm, categorizations, and visual sub-sections are now active in the directory list. You can review the updated design by clicking **Preview** in the top-right corner of your editor.
