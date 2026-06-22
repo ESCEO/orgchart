@@ -403,7 +403,7 @@
         </div>
     </div>
 
-    <!-- Animated Slow Sync Warning Overlay Modal (Appears when connection is taking too long) -->
+    <!-- Animated Slow Sync Warning Overlay Modal -->
     <div id="slow-sync-modal" class="hidden fixed inset-0 bg-navy/70 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
             <div class="mx-auto flex items-center justify-center h-16 w-16 mb-4 relative">
@@ -414,7 +414,6 @@
             <p class="text-xs text-medgray mt-2 leading-relaxed">
                 Establishing handshake with the live Google Sheet database. Please stand by while we optimize directory structures.
             </p>
-            <!-- Animated Loading Bar Indicators -->
             <div class="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden relative">
                 <div class="bg-gradient-to-r from-escblue to-lightblue h-1.5 rounded-full absolute left-0 top-0 bottom-0 animate-pulse" style="width: 75%;"></div>
             </div>
@@ -425,7 +424,7 @@
         </div>
     </div>
 
-    <!-- Connection Blocked Warning Notification Modal (Forces Live Sync connection) -->
+    <!-- Connection Blocked Warning Notification Modal -->
     <div id="cache-warning-modal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
             <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-rose-50 text-rose-600 mb-4 shadow-sm border border-rose-200">
@@ -436,7 +435,6 @@
                 We were unable to synchronize with your live Google Sheet database. Live access is required to view the latest organizational directory data.
             </p>
             <div class="mt-5">
-                <!-- Strict sync action button to trigger live database rechecks -->
                 <button onclick="retrySyncFromModal()" class="w-full py-2.5 bg-escblue hover:bg-navy text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-arrows-rotate" id="modal-sync-icon"></i>
                     <span>Retry Live Connection</span>
@@ -466,7 +464,7 @@
         // Core Application State Managers
         const state = {
             people: [...INITIAL_WORKFORCE],
-            collapsed: {},
+            collapsed: {}, // Empty means all expanded by default
             searchQuery: "",
             selectedId: null,
             zoom: 1,
@@ -1225,7 +1223,6 @@
             }
             if (details) details.innerText = "Connecting...";
 
-            // Start a timer. If synchronization takes longer than 1500ms, reveal the slow connection blocker.
             const slowSyncTimer = setTimeout(() => {
                 showSlowSyncModal();
             }, 1500);
@@ -1239,8 +1236,9 @@
                 }
 
                 state.people = parsed;
-                state.selectedId = parsed[0].id;
+                state.collapsed = {}; // Force all nodes to be fully expanded
 
+                // Set database status to Active
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-emerald-600 uppercase flex items-center space-x-1";
                     badge.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Active</span>`;
@@ -1248,24 +1246,34 @@
                 if (details) details.innerText = `Loaded ${parsed.length} profiles.`;
 
                 showToast('success', `Direct sync completed! Loaded ${parsed.length} employees.`);
-                closeCacheWarningModal(); // Automatically dismiss the blocker modal on a successful sync
+                closeCacheWarningModal();
                 renderApp();
+
+                // Center visual camera directly on the top-level root supervisor
+                const { roots } = getHierarchyMaps();
+                if (roots.length > 0) {
+                    const topLevelPersonId = roots[0].id;
+                    state.selectedId = topLevelPersonId;
+                    renderApp(); // Re-render visual selection
+                    setTimeout(() => {
+                        zoomToNode(topLevelPersonId);
+                    }, 350); // Timeout allows layout to render and return accurate bounding rect coordinates
+                }
             } catch (err) {
+                // Fall back to pre-saved cache data but keep user restricted to blocker modal
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-red-600 uppercase flex items-center space-x-1";
                     badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i><span>Offline</span>`;
                 }
                 if (details) details.innerText = "Sync failure.";
 
-                // Zero-out active data structures to prevent offline browsing leaks
                 state.people = [];
                 state.selectedId = null;
                 renderApp();
 
                 console.error("Google Sheets synchronization bypassed. Blocker interface active.");
-                openCacheWarningModal(); // Force open the connection blocker modal
+                openCacheWarningModal(); // Block interaction until a valid sync occurs
             } finally {
-                // Clear the long-sync warning timer and ensure warning modal is closed
                 clearTimeout(slowSyncTimer);
                 hideSlowSyncModal();
 
@@ -1308,7 +1316,6 @@
             const modalIcon = document.getElementById('modal-sync-icon');
             if (modalIcon) modalIcon.classList.add('animate-spin');
             
-            // Re-attempt Google Sheet Sync
             syncGoogleSheet().finally(() => {
                 if (modalIcon) modalIcon.classList.remove('animate-spin');
             });
