@@ -88,10 +88,13 @@
     <!-- Top Dashboard Header Navigation Bar -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center z-20 shadow-sm shrink-0">
         <div class="flex items-center space-x-3 mb-4 sm:mb-0">
-            <div class="bg-navy text-white p-2.5 rounded-xl shadow-md">
-                <i class="fa-solid fa-sitemap text-xl"></i>
-            </div>
-            <div>
+            <img 
+                src="https://www.esceasternohio.org/fs/resource-manager/view/9519f209-41e9-453b-8d49-98a5f4f49348" 
+                alt="ESCEO Logo" 
+                class="h-10 w-auto object-contain max-w-[180px]" 
+                onerror="this.onerror=null; this.src='https://placehold.co/180x40/1F2D4C/ffffff?text=ESCEO';"
+            />
+            <div class="border-l border-slate-200 pl-3">
                 <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-navy to-escblue bg-clip-text text-transparent">
                     ESCEO Organizational Chart
                 </h1>
@@ -368,6 +371,17 @@
             </div>
         </main>
     </div>
+
+    <!-- Professional Footer Bar -->
+    <footer class="bg-white border-t border-slate-200/80 px-6 py-2.5 flex flex-col sm:flex-row justify-between items-center z-20 text-[10px] text-lightgray font-medium shrink-0 space-y-1.5 sm:space-y-0 shadow-sm">
+        <div class="flex items-center space-x-1">
+            <span>&copy; 2026 Educational Service Center of Eastern Ohio. All rights reserved.</span>
+        </div>
+        <div class="flex items-center space-x-1">
+            <span class="italic">powered by</span>
+            <span>ESCEO Technology</span>
+        </div>
+    </footer>
 
     <!-- Email Copied Alert Modal -->
     <div id="copy-success-modal" class="hidden fixed inset-0 bg-navy/60 backdrop-blur-sm flex items-center justify-center z-50">
