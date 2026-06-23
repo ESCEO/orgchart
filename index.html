@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ESCEO Organizational Chart</title>
     
     <!-- Tailwind CSS for rich modern UI styling -->
@@ -36,6 +36,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
         /* Custom scrollbar style for sleek aesthetic look */
         ::-webkit-scrollbar {
@@ -86,23 +87,27 @@
 <body class="bg-slate-50 text-escgray h-screen overflow-hidden flex flex-col">
 
     <!-- Top Dashboard Header Navigation Bar -->
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center z-20 shadow-sm shrink-0">
-        <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+    <header class="bg-white border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center z-20 shadow-sm shrink-0">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <!-- Sidebar Toggle Button for Mobile/Tablet views -->
+            <button onclick="toggleSidebar()" class="md:hidden p-2 text-navy hover:bg-slate-100 rounded-lg transition-colors mr-1" title="Toggle Search & Profiles">
+                <i class="fa-solid fa-bars text-base sm:text-lg"></i>
+            </button>
             <img 
                 src="https://www.esceasternohio.org/fs/resource-manager/view/9519f209-41e9-453b-8d49-98a5f4f49348" 
                 alt="ESCEO Logo" 
-                class="h-10 w-auto object-contain max-w-[180px]" 
+                class="h-8 sm:h-10 w-auto object-contain max-w-[120px] sm:max-w-[180px]" 
                 onerror="this.onerror=null; this.src='https://placehold.co/180x40/1F2D4C/ffffff?text=ESCEO';"
             />
-            <div class="border-l border-slate-200 pl-3">
-                <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-navy to-escblue bg-clip-text text-transparent">
-                    ESCEO Organizational Chart
+            <div class="border-l border-slate-200 pl-2 sm:pl-3 hidden xs:block">
+                <h1 class="text-xs sm:text-sm md:text-xl font-extrabold tracking-tight bg-gradient-to-r from-navy to-escblue bg-clip-text text-transparent truncate">
+                    Organizational Chart
                 </h1>
             </div>
         </div>
 
         <!-- Alert Banner Area & Condensed Database Status Controls -->
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-1.5 sm:space-x-3">
             <div id="toast-info" class="hidden flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
                 <i class="fa-solid fa-spinner animate-spin text-escblue"></i>
                 <span id="toast-info-msg">Connecting database...</span>
@@ -117,22 +122,23 @@
             </div>
 
             <!-- Condensed DB Status Block -->
-            <div class="flex items-center space-x-2 text-xs bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-2 shadow-sm">
-                <span class="font-bold text-navy flex items-center text-[11px] shrink-0">
-                    <i class="fa-solid fa-database text-escblue mr-1.5"></i>
+            <div class="flex items-center space-x-1.5 sm:space-x-2 text-xs bg-slate-50 border border-slate-200/80 rounded-lg p-1.5 sm:px-2.5 sm:py-2 shadow-sm">
+                <span class="font-bold text-navy flex items-center text-[10px] sm:text-[11px] shrink-0">
+                    <i class="fa-solid fa-database text-escblue mr-1 sm:mr-1.5"></i>
                     <span class="hidden md:inline">Database:</span>
                 </span>
-                <span id="sync-badge" class="text-[10px] font-extrabold text-blue-600 uppercase flex items-center space-x-1">
-                    <i class="fa-solid fa-spinner animate-spin mr-1"></i> Syncing
+                <span id="sync-badge" class="text-[9px] sm:text-[10px] font-extrabold text-blue-600 uppercase flex items-center space-x-1">
+                    <i class="fa-solid fa-spinner animate-spin mr-0.5 sm:mr-1"></i> Syncing
                 </span>
                 <span class="text-slate-300 hidden sm:inline">|</span>
-                <span id="sync-details" class="text-[10px] text-lightgray truncate max-w-[140px] hidden sm:inline">Connecting...</span>
+                <span id="sync-details" class="text-[9px] sm:text-[10px] text-lightgray truncate max-w-[80px] sm:max-w-[140px] hidden sm:inline">Connecting...</span>
             </div>
 
             <!-- Manual Force Sync Button -->
-            <button onclick="syncGoogleSheet()" class="flex items-center space-x-2 bg-indigo-50/50 hover:bg-lightblue/10 text-escblue px-3 py-2 rounded-lg text-xs font-semibold border border-lightblue/25 transition-all shadow-sm">
+            <button onclick="syncGoogleSheet()" class="flex items-center space-x-1 sm:space-x-2 bg-indigo-50/50 hover:bg-lightblue/10 text-escblue px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold border border-lightblue/25 transition-all shadow-sm">
                 <i class="fa-solid fa-arrows-rotate" id="header-sync-icon"></i>
-                <span>Sync Now</span>
+                <span class="hidden sm:inline">Sync Now</span>
+                <span class="sm:hidden">Sync</span>
             </button>
         </div>
     </header>
@@ -140,22 +146,29 @@
     <!-- Main Interactive Workspace Grid -->
     <div class="flex flex-1 overflow-hidden relative">
         
+        <!-- Backdrop overlay for mobile sidebar -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-20 hidden md:hidden transition-opacity"></div>
+
         <!-- Left Panel: Profile inspector & directory search -->
-        <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-10 shrink-0 shadow-lg md:relative absolute inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
+        <aside class="w-full max-w-sm md:w-96 bg-white border-r border-slate-200 flex flex-col z-30 shrink-0 shadow-lg md:relative absolute inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
             
-            <!-- Sidebar Header Title -->
-            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/40">
+            <!-- Sidebar Header Title with close drawer option -->
+            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/40 flex justify-between items-center">
                 <h2 class="text-xs font-extrabold uppercase text-navy tracking-wider flex items-center">
                     <i class="fa-solid fa-address-book mr-2 text-escblue"></i> Staff Search and Profiles
                 </h2>
+                <!-- Close Button for Drawer on Mobile views -->
+                <button onclick="toggleSidebar()" class="md:hidden p-1.5 text-lightgray hover:text-medgray hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
             </div>
 
             <!-- Scrollable Drawer Container -->
-            <div class="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 flex flex-col">
 
                 <!-- Real-time Multi-field Search Input Card -->
                 <div class="space-y-2 shrink-0">
-                    <label class="text-xs font-bold uppercase text-lightgray tracking-wider">Search Organization Chart</label>
+                    <label class="text-[10px] sm:text-xs font-bold uppercase text-lightgray tracking-wider">Search Organization Chart</label>
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-lightgray text-sm"></i>
                         <input 
@@ -169,7 +182,7 @@
                 </div>
 
                 <!-- Selected Employee Profile Inspector Detail Card -->
-                <div id="inspector-card" class="hidden bg-slate-50 rounded-xl border border-lightgray/20 p-5 space-y-5 shadow-inner animate-fade-in flex-1">
+                <div id="inspector-card" class="hidden bg-slate-50 rounded-xl border border-lightgray/20 p-4 sm:p-5 space-y-5 shadow-inner animate-fade-in flex-1">
                     <div class="flex items-start space-x-4">
                         <div id="insp-photo-container" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow border border-slate-150">
                             <!-- Initials or Image dynamic rendering inside Javascript -->
@@ -266,37 +279,37 @@
         <main class="flex-1 flex flex-col relative overflow-hidden">
             
             <!-- Dynamic Controls Panel Header Block -->
-            <section class="bg-slate-100/80 backdrop-blur-sm px-6 py-3 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between z-10 shrink-0">
+            <section class="bg-slate-100/80 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 border-b border-slate-200 flex flex-wrap gap-2.5 items-center justify-between z-10 shrink-0">
                 
                 <!-- View Option selectors -->
                 <div class="flex items-center space-x-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                    <button onclick="switchViewMode('tree')" id="view-btn-tree" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-escblue text-white shadow-sm">
-                        <i class="fa-solid fa-diagram-project text-[11px]"></i>
+                    <button onclick="switchViewMode('tree')" id="view-btn-tree" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-escblue text-white shadow-sm">
+                        <i class="fa-solid fa-diagram-project text-[10px] sm:text-[11px]"></i>
                         <span>Visual Tree</span>
                     </button>
-                    <button onclick="switchViewMode('list')" id="view-btn-list" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all text-medgray hover:text-escgray">
-                        <i class="fa-solid fa-list-ul text-[11px]"></i>
+                    <button onclick="switchViewMode('list')" id="view-btn-list" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all text-medgray hover:text-escgray">
+                        <i class="fa-solid fa-list-ul text-[10px] sm:text-[11px]"></i>
                         <span>List Directory</span>
                     </button>
                 </div>
 
                 <!-- Tree Orientation Toggles & Bulk Expand/Collapsers -->
-                <div id="tree-options" class="flex items-center space-x-3">
+                <div id="tree-options" class="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <div class="flex items-center space-x-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                        <button onclick="setLayoutMode('vertical')" id="layout-btn-vertical" class="px-2.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-escblue">
+                        <button onclick="setLayoutMode('vertical')" id="layout-btn-vertical" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-bold bg-slate-100 text-escblue">
                             Vertical
                         </button>
-                        <button onclick="setLayoutMode('horizontal')" id="layout-btn-horizontal" class="px-2.5 py-1.5 rounded-md text-xs font-bold text-medgray hover:text-escblue">
+                        <button onclick="setLayoutMode('horizontal')" id="layout-btn-horizontal" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-bold text-medgray hover:text-escblue">
                             Horizontal
                         </button>
                     </div>
 
-                    <div class="flex items-center space-x-1.5 bg-white p-1 rounded-lg border border-slate-200 shadow-sm text-xs">
-                        <button onclick="expandAll()" class="px-2.5 py-1.5 text-escgray hover:bg-slate-50 font-bold rounded-md">
+                    <div class="flex items-center space-x-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm text-[10px] sm:text-xs">
+                        <button onclick="expandAll()" class="px-2 py-1 text-escgray hover:bg-slate-50 font-bold rounded-md">
                             Expand All
                         </button>
                         <span class="text-slate-300">|</span>
-                        <button onclick="collapseAll()" class="px-2.5 py-1.5 text-escgray hover:bg-slate-50 font-bold rounded-md">
+                        <button onclick="collapseAll()" class="px-2 py-1 text-escgray hover:bg-slate-50 font-bold rounded-md">
                             Collapse All
                         </button>
                     </div>
@@ -320,71 +333,72 @@
 
                 <!-- Graphic Render Box -->
                 <div id="tree-view-canvas" class="w-full h-full overflow-hidden absolute inset-0 canvas-container flex items-center justify-center">
-                    <div id="canvas-mover" class="origin-center p-12 flex flex-col items-center transform canvas-transition">
+                    <div id="canvas-mover" class="origin-center p-6 sm:p-12 flex flex-col items-center transform canvas-transition">
                         <!-- Javascript recursively renders tree structures inside this div -->
                     </div>
                 </div>
 
                 <!-- Directory List Mode Grid View -->
-                <div id="directory-list-view" class="hidden w-full h-full overflow-y-auto p-8 bg-slate-50">
+                <div id="directory-list-view" class="hidden w-full h-full overflow-y-auto p-4 sm:p-8 bg-slate-50">
                     <div class="max-w-4xl mx-auto space-y-6">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
                             <div>
-                                <h2 class="text-lg font-bold">Comprehensive Directory Grid</h2>
-                                <p class="text-xs text-lightgray mt-0.5">Filter results dynamically in the sidebar search input</p>
+                                <h2 class="text-sm sm:text-lg font-bold">Comprehensive Directory Grid</h2>
+                                <p class="text-[10px] sm:text-xs text-lightgray mt-0.5">Filter results dynamically in the sidebar search input</p>
                             </div>
-                            <span id="directory-total-badge" class="text-xs font-semibold bg-slate-200 text-medgray px-3 py-1 rounded-full">
+                            <span id="directory-total-badge" class="text-[10px] sm:text-xs font-semibold bg-slate-200 text-medgray px-3 py-1 rounded-full">
                                 Showing 0 of 0 employees
                             </span>
                         </div>
 
-                        <div id="directory-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div id="directory-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- Dynamic profiles injected here -->
                         </div>
                     </div>
                 </div>
 
                 <!-- Floating Canvas View Controls Bar -->
-                <div id="canvas-controls" class="absolute bottom-6 right-6 flex items-center space-x-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200 z-20">
-                    <button onclick="toggleNavigationTutorial()" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Org Chart Guide">
-                        <i class="fa-solid fa-circle-question text-sm"></i>
+                <div id="canvas-controls" class="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex items-center space-x-1.5 sm:space-x-2 bg-white/90 backdrop-blur-md p-1.5 sm:p-2 rounded-lg sm:rounded-xl shadow-lg border border-slate-200 z-20">
+                    <button onclick="toggleNavigationTutorial()" class="p-1.5 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Org Chart Guide">
+                        <i class="fa-solid fa-circle-question text-xs sm:text-sm"></i>
                     </button>
                     <span class="text-slate-300">|</span>
-                    <button onclick="adjustZoom(0.1)" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom In">
-                        <i class="fa-solid fa-plus text-sm"></i>
+                    <button onclick="adjustZoom(0.1)" class="p-1.5 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom In">
+                        <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
                     </button>
-                    <button onclick="adjustZoom(-0.1)" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom Out">
-                        <i class="fa-solid fa-minus text-sm"></i>
+                    <button onclick="adjustZoom(-0.1)" class="p-1.5 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Zoom Out">
+                        <i class="fa-solid fa-minus text-xs sm:text-sm"></i>
                     </button>
                     <span class="text-slate-300">|</span>
-                    <span id="zoom-level-indicator" class="text-xs font-bold text-medgray px-1">100%</span>
+                    <span id="zoom-level-indicator" class="text-[10px] sm:text-xs font-bold text-medgray px-1">100%</span>
                     <span class="text-slate-300">|</span>
-                    <button onclick="resetZoomAndPan()" class="p-2 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Reset Frame">
-                        <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                    <button onclick="resetZoomAndPan()" class="p-1.5 hover:bg-slate-100 text-medgray rounded-lg focus:outline-none" title="Reset Frame">
+                        <i class="fa-solid fa-arrows-rotate text-xs sm:text-sm"></i>
                     </button>
                 </div>
 
                 <!-- Movable & Minimizable Floating Org Chart Navigation Panel -->
                 <div id="org-chart-navigation" class="absolute z-20 select-none" style="top: 24px; left: 24px;">
                     <!-- Minimized State (? in a small circle) -->
-                    <button id="nav-minimized" onclick="toggleNavState(false)" class="hidden w-11 h-11 rounded-full bg-white hover:bg-slate-50 text-escblue border border-slate-200 shadow-xl flex items-center justify-center font-bold cursor-grab active:cursor-grabbing focus:outline-none transition-all duration-150" title="Open Org Chart Navigation">
-                        <i class="fa-solid fa-question text-base pointer-events-none"></i>
+                    <button id="nav-minimized" onclick="toggleNavState(false)" class="hidden w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white hover:bg-slate-50 text-escblue border border-slate-200 shadow-xl flex items-center justify-center font-bold cursor-grab active:cursor-grabbing focus:outline-none transition-all duration-150" title="Open Org Chart Navigation">
+                        <i class="fa-solid fa-compass text-sm sm:text-base pointer-events-none"></i>
                     </button>
                     
                     <!-- Expanded State (Card Details) -->
-                    <div id="nav-expanded" class="bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-xl border border-slate-200 max-w-xs w-72 animate-fade-in">
+                    <div id="nav-expanded" class="bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-xl border border-slate-200 max-w-xs w-60 sm:w-72 animate-fade-in">
                         <!-- Header (Acts as the primary Drag Handle, indicated by grabbing cursor) -->
                         <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-100 drag-handle cursor-grab active:cursor-grabbing">
-                            <h4 class="text-xs font-bold text-navy flex items-center pointer-events-none">
+                            <h4 class="text-[10px] sm:text-xs font-bold text-navy flex items-center pointer-events-none">
                                 <i class="fa-solid fa-compass text-escblue mr-1.5"></i> Org Chart Navigation
                             </h4>
                             <button onclick="toggleNavState(true)" class="text-lightgray hover:text-medgray p-1 transition-colors rounded hover:bg-slate-100 focus:outline-none" title="Minimize Guide">
                                 <i class="fa-solid fa-minus text-[10px] leading-none"></i>
                             </button>
                         </div>
-                        <ul class="text-[10px] text-medgray space-y-1 list-disc pl-4">
-                            <li>Left-click and hold anywhere on the canvas background to Pan/Drag the layout map.</li>
-                            <li>Click the expandable arrow arrows below nodes to toggle visual reports branches.</li>
+                        <ul class="text-[9px] sm:text-[10px] text-medgray space-y-1 list-disc pl-4">
+                            <li>Left-click / drag anywhere on canvas background to Pan/Drag map.</li>
+                            <li>Two-finger pinch gesture zooms in and out on touch screens.</li>
+                            <li>Click node expand arrows to open reporting branches.</li>
                         </ul>
                     </div>
                 </div>
@@ -394,7 +408,7 @@
     </div>
 
     <!-- Interactive Sticky Footer Area -->
-    <footer class="bg-white border-t border-slate-200 px-6 py-3.5 flex justify-between items-center text-xs text-lightgray z-20 shrink-0">
+    <footer class="bg-white border-t border-slate-200 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center text-center gap-2 text-[10px] sm:text-xs text-lightgray z-20 shrink-0">
         <div>
             <span>&copy; 2026 Educational Service Center of Eastern Ohio. All rights reserved.</span>
         </div>
@@ -492,7 +506,9 @@
             isDraggingCanvas: false,
             dragStart: { x: 0, y: 0 },
             isEmailVerified: false,
-            humanVerifyOption: null
+            humanVerifyOption: null,
+            initialPinchDistance: null,
+            initialZoom: 1
         };
 
         /**
@@ -607,6 +623,19 @@
         window.addEventListener('DOMContentLoaded', () => {
             initializeInteractiveCanvas();
             initializeDraggableNavigation();
+            
+            // Auto-minimize instructions widget on smaller mobile screens
+            if (window.innerWidth < 768) {
+                toggleNavState(true);
+                const parentEl = document.getElementById('org-chart-navigation');
+                if (parentEl) {
+                    parentEl.style.top = '12px';
+                    parentEl.style.left = '12px';
+                }
+            } else {
+                toggleNavState(false);
+            }
+
             renderApp();
             resetZoomAndPan();
             syncGoogleSheet();
@@ -615,6 +644,7 @@
         function initializeInteractiveCanvas() {
             const workspace = document.getElementById('canvas-workspace');
 
+            // Mouse Drag/Pan Support
             workspace.addEventListener('mousedown', (e) => {
                 if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
                 state.isDraggingCanvas = true;
@@ -638,9 +668,71 @@
                 if (mover) mover.classList.add('canvas-transition'); 
             });
 
+            // Touch Screen support (Single-finger dragging, Two-finger pinching zoom)
+            workspace.addEventListener('touchstart', (e) => {
+                if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls')) return;
+                
+                if (e.touches.length === 1) {
+                    state.isDraggingCanvas = true;
+                    const mover = document.getElementById('canvas-mover');
+                    if (mover) mover.classList.remove('canvas-transition');
+                    state.dragStart = { 
+                        x: e.touches[0].clientX - state.pan.x, 
+                        y: e.touches[0].clientY - state.pan.y 
+                    };
+                } else if (e.touches.length === 2) {
+                    state.isDraggingCanvas = false;
+                    state.initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    state.initialZoom = state.zoom;
+                }
+            }, { passive: true });
+
+            workspace.addEventListener('touchmove', (e) => {
+                if (state.isDraggingCanvas && e.touches.length === 1) {
+                    state.pan = {
+                        x: e.touches[0].clientX - state.dragStart.x,
+                        y: e.touches[0].clientY - state.dragStart.y
+                    };
+                    updateCanvasTransform();
+                } else if (e.touches.length === 2 && state.initialPinchDistance) {
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const factor = currentDistance / state.initialPinchDistance;
+                    state.zoom = Math.max(0.3, Math.min(2.5, state.initialZoom * factor));
+                    updateCanvasTransform();
+                }
+            }, { passive: true });
+
+            workspace.addEventListener('touchend', () => {
+                state.isDraggingCanvas = false;
+                state.initialPinchDistance = null;
+                const mover = document.getElementById('canvas-mover');
+                if (mover) mover.classList.add('canvas-transition'); 
+            });
+
             workspace.addEventListener('selectstart', (e) => {
                 if (state.isDraggingCanvas || e.target.closest('#org-chart-navigation')) e.preventDefault();
             });
+        }
+
+        /**
+         * Slidably toggles sidebars with dimming backdrops
+         */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
         }
 
         /**
@@ -755,7 +847,6 @@
             const expEl = document.getElementById('nav-expanded');
             const parentEl = document.getElementById('org-chart-navigation');
             
-            // Get current dimensions and calculate center of current element
             const oldRect = parentEl.getBoundingClientRect();
             const pRect = parentEl.parentElement.getBoundingClientRect();
             
@@ -770,7 +861,6 @@
                 expEl.classList.remove('hidden');
             }
 
-            // Immediately clear positioning to absolute pixels based on center
             const newRect = parentEl.getBoundingClientRect();
             
             let left = centerX - newRect.width / 2;
@@ -833,14 +923,12 @@
             const moverRect = mover.getBoundingClientRect();
             const elRect = el.getBoundingClientRect();
             
-            // Standard reading zoom scale reset
             state.zoom = 1.0;
             
             const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
             state.pan.x = (viewRect.width / 2) - (localX * state.zoom);
             
             if (alignTop) {
-                // Pin the top edge of the node element exactly 40px down from viewport top boundary
                 const localYTop = (elRect.top - moverRect.top) / state.zoom;
                 state.pan.y = 40 - (localYTop * state.zoom);
             } else {
@@ -1109,14 +1197,11 @@
 
                 document.getElementById('directory-total-badge').innerText = `Showing ${matches.length} of ${state.people.length} employees`;
 
-                // Build unique supervisor IDs across full dataset to classify users stably
                 const supervisorIds = new Set(state.people.map(p => p.supervisor).filter(id => id && id.trim() !== ''));
 
-                // Segment the matches list
                 const supervisors = matches.filter(p => supervisorIds.has(p.id));
                 const users = matches.filter(p => !supervisorIds.has(p.id));
 
-                // Sort both categories alphabetically by Last Name, then First Name
                 supervisors.sort(compareNames);
                 users.sort(compareNames);
 
@@ -1344,6 +1429,16 @@
                 renderApp();
             }
 
+            // Slide open profile inspector sidebar drawer on mobile/tablet screens automatically
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (sidebar && sidebar.classList.contains('-translate-x-full')) {
+                    sidebar.classList.remove('-translate-x-full');
+                    overlay.classList.remove('hidden');
+                }
+            }
+
             if (state.viewMode === 'tree') {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
@@ -1488,14 +1583,13 @@
                 closeCacheWarningModal();
                 renderApp();
 
-                // Center visual camera directly on the top-level root supervisor at the top-center
                 const { roots } = getHierarchyMaps();
                 if (roots.length > 0) {
                     const topLevelPersonId = roots[0].id;
                     state.selectedId = topLevelPersonId;
                     renderApp(); 
                     setTimeout(() => {
-                        zoomToNode(topLevelPersonId, true); // true aligns it beautifully at the top-center
+                        zoomToNode(topLevelPersonId, true);
                     }, 350); 
                 }
             } catch (err) {
@@ -1510,7 +1604,7 @@
                 renderApp();
 
                 console.error("Google Sheets synchronization bypassed. Blocker interface active.", err);
-                openCacheWarningModal(); // Block interaction until a valid sync occurs
+                openCacheWarningModal();
             } finally {
                 clearTimeout(slowSyncTimer);
                 hideSlowSyncModal();
@@ -1520,7 +1614,6 @@
             }
         }
 
-        // Cache Modal Interface Handlers
         function openCacheWarningModal() {
             const modal = document.getElementById('cache-warning-modal');
             if (modal) modal.classList.remove('hidden');
