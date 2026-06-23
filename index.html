@@ -146,13 +146,13 @@
     <!-- Main Interactive Workspace Grid -->
     <div class="flex flex-1 overflow-hidden relative">
         
-        <!-- Backdrop overlay for mobile sidebar -->
+        <!-- Backdrop overlay for mobile sidebar drawer -->
         <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-20 hidden md:hidden transition-opacity"></div>
 
         <!-- Left Panel: Profile inspector & directory search -->
         <aside class="w-full max-w-sm md:w-96 bg-white border-r border-slate-200 flex flex-col z-30 shrink-0 shadow-lg md:relative absolute inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
             
-            <!-- Sidebar Header Title with close drawer option -->
+            <!-- Sidebar Header Title with mobile close trigger -->
             <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/40 flex justify-between items-center">
                 <h2 class="text-xs font-extrabold uppercase text-navy tracking-wider flex items-center">
                     <i class="fa-solid fa-address-book mr-2 text-escblue"></i> Staff Search and Profiles
@@ -317,7 +317,7 @@
             </section>
 
             <!-- Interactive Drag, Pan and Zoom Canvas container -->
-            <div id="canvas-workspace" class="flex-1 relative overflow-hidden select-none bg-slate-50">
+            <div id="canvas-workspace" class="flex-1 relative overflow-hidden select-none bg-slate-50" style="touch-action: none;">
                 
                 <!-- Seamless Loading Overlay -->
                 <div id="seamless-loader" class="absolute inset-0 bg-slate-50/90 z-30 flex flex-col items-center justify-center space-y-4 animate-fade-in hidden">
@@ -668,7 +668,7 @@
                 if (mover) mover.classList.add('canvas-transition'); 
             });
 
-            // Touch Screen support (Single-finger dragging, Two-finger pinching zoom)
+            // Touch Screen support with explicit passive: false to prevent Safari scroll-blocking
             workspace.addEventListener('touchstart', (e) => {
                 if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls')) return;
                 
@@ -680,6 +680,8 @@
                         x: e.touches[0].clientX - state.pan.x, 
                         y: e.touches[0].clientY - state.pan.y 
                     };
+                    // Safari requires e.preventDefault to bypass active bounce controls
+                    e.preventDefault();
                 } else if (e.touches.length === 2) {
                     state.isDraggingCanvas = false;
                     state.initialPinchDistance = Math.hypot(
@@ -687,8 +689,9 @@
                         e.touches[0].clientY - e.touches[1].clientY
                     );
                     state.initialZoom = state.zoom;
+                    e.preventDefault();
                 }
-            }, { passive: true });
+            }, { passive: false });
 
             workspace.addEventListener('touchmove', (e) => {
                 if (state.isDraggingCanvas && e.touches.length === 1) {
@@ -697,6 +700,7 @@
                         y: e.touches[0].clientY - state.dragStart.y
                     };
                     updateCanvasTransform();
+                    e.preventDefault();
                 } else if (e.touches.length === 2 && state.initialPinchDistance) {
                     const currentDistance = Math.hypot(
                         e.touches[0].clientX - e.touches[1].clientX,
@@ -705,8 +709,9 @@
                     const factor = currentDistance / state.initialPinchDistance;
                     state.zoom = Math.max(0.3, Math.min(2.5, state.initialZoom * factor));
                     updateCanvasTransform();
+                    e.preventDefault();
                 }
-            }, { passive: true });
+            }, { passive: false });
 
             workspace.addEventListener('touchend', () => {
                 state.isDraggingCanvas = false;
