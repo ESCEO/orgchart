@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ESCEO Organizational Chart</title>
     
-    <!-- Tailwind CSS for rich modern UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind = {
@@ -55,6 +54,7 @@
         }
         .canvas-container {
             cursor: grab;
+            touch-action: none; /* Crucial for iOS/Safari default swipe suppression */
         }
         .canvas-container:active {
             cursor: grabbing;
@@ -124,7 +124,7 @@
             <!-- Condensed DB Status Block -->
             <div class="flex items-center space-x-1.5 sm:space-x-2 text-xs bg-slate-50 border border-slate-200/80 rounded-lg p-1.5 sm:px-2.5 sm:py-2 shadow-sm">
                 <span class="font-bold text-navy flex items-center text-[10px] sm:text-[11px] shrink-0">
-                    <i class="fa-solid fa-database text-escblue mr-1 sm:mr-1.5"></i>
+                    <i class="fa-solid fa-database text-escblue mr-1.5"></i>
                     <span class="hidden md:inline">Database:</span>
                 </span>
                 <span id="sync-badge" class="text-[9px] sm:text-[10px] font-extrabold text-blue-600 uppercase flex items-center space-x-1">
@@ -198,53 +198,32 @@
 
                     <hr class="border-slate-200">
 
-                    <!-- Contact Details & Cybersecurity Protection Controls -->
+                    <!-- Contact Details (No phone/email icons; clean styling) -->
                     <div class="space-y-4 text-xs">
                         
-                        <!-- Phone Number Detail Block -->
+                        <!-- Phone Number Detail Block (Text Only - No Dial Button/Icons) -->
                         <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
                             <span class="text-[9px] font-extrabold uppercase tracking-widest text-lightgray block mb-1">
-                                <i class="fa-solid fa-phone text-escblue mr-1"></i> Phone Number
+                                Phone Number
                             </span>
                             <div class="flex items-center justify-between">
                                 <span class="text-[11px] font-semibold text-navy font-mono" id="insp-phone">
                                     N/A
                                 </span>
-                                <a 
-                                    id="phone-tel-btn"
-                                    href="#"
-                                    class="bg-escblue hover:bg-navy text-white p-1.5 rounded-lg text-xs transition-all shadow flex items-center justify-center w-8 h-8"
-                                    title="Call Number"
-                                >
-                                    <i class="fa-solid fa-phone-volume"></i>
-                                </a>
                             </div>
                         </div>
 
-                        <!-- Protected Cybersecurity Email Block -->
-                        <div class="p-3 bg-slate-100 rounded-lg border border-slate-200/50 shadow-sm">
-                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-lightgray block mb-1.5">
-                                <i class="fa-solid fa-shield-halved text-escblue mr-1"></i> Email Address
-                            </span>
-                            <div class="flex items-center justify-between min-h-8">
-                                <span class="text-[11px] font-semibold text-medgray italic break-all pr-2" id="secure-email-placeholder">
-                                    ••••••••@••••.•••
-                                </span>
-                                <button 
-                                    id="email-action-btn"
-                                    onclick="initiateSecureEmail()"
-                                    class="bg-escblue hover:bg-navy text-white px-2.5 py-1 rounded-md text-[10px] font-bold transition-all shadow flex items-center space-x-1 shrink-0"
-                                >
-                                    <i class="fa-solid fa-unlock text-[9px]"></i>
-                                    <span>Unlock & Copy</span>
-                                </button>
-                            </div>
-                            <div id="email-verification-step" class="hidden mt-2 pt-2 border-t border-slate-200 space-y-2 animate-fade-in">
-                                <p class="text-[10px] text-medgray">Click the correct symbol to prove humanity:</p>
-                                <div class="flex items-center space-x-2" id="verification-options">
-                                    <!-- Javascript generated verification target -->
-                                </div>
-                            </div>
+                        <!-- Simplified Dynamic Contact Button (Contact Staff) -->
+                        <div id="contact-button-block" class="hidden">
+                            <a 
+                                id="contact-action-btn"
+                                href="#"
+                                target="_blank"
+                                class="w-full bg-escblue hover:bg-navy text-white py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                            >
+                                <span>Contact Staff</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
                         </div>
 
                         <!-- Supervisor Traversal -->
@@ -270,7 +249,7 @@
                 <!-- No Selection State placeholder -->
                 <div id="inspector-placeholder" class="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 p-5 flex-1 flex flex-col justify-center items-center">
                     <i class="fa-solid fa-users text-lightgray text-3xl mb-3"></i>
-                    <p class="text-xs text-medgray leading-relaxed max-w-xs">Select any employee node on the chart to inspect their supervisor, direct reports, phone number, and unlock their email address.</p>
+                    <p class="text-xs text-medgray leading-relaxed max-w-xs">Select any employee node on the chart to inspect their supervisor, direct reports, phone number, and access their contact links.</p>
                 </div>
             </div>
         </aside>
@@ -417,24 +396,6 @@
         </div>
     </footer>
 
-    <!-- Email Copied Alert Modal -->
-    <div id="copy-success-modal" class="hidden fixed inset-0 bg-navy/60 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
-            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 mb-4 shadow-sm">
-                <i class="fa-solid fa-circle-check text-2xl"></i>
-            </div>
-            <h3 class="text-base font-extrabold text-navy">Email Address Copied!</h3>
-            <p class="text-xs text-medgray mt-2 leading-relaxed">
-                The decrypted email address has been safely copied directly to your device's clipboard.
-            </p>
-            <div class="mt-5">
-                <button onclick="closeCopySuccessModal()" class="w-full py-2.5 bg-escblue hover:bg-navy text-white text-xs font-bold rounded-xl shadow-md transition-all">
-                    Dismiss
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Animated Slow Sync Warning Overlay Modal -->
     <div id="slow-sync-modal" class="hidden fixed inset-0 bg-navy/70 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-fade-in mx-4">
@@ -479,18 +440,18 @@
         // HARDCODED DATABASE ENDPOINT URL
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2KRBGym05tdr2yk__Lhsb63FoVddLnVch6UNiMbhqGo7xN6bcWGLOq8DFXMRVN7-MqFIQCBhh1UU8/pub?output=csv";
 
-        // Preloaded complete backup directory to run during network failures
+        // Preloaded complete backup directory to run during network failures (Formatted for dynamic link detection)
         const INITIAL_WORKFORCE = [
-            { id: "Sarah Jenkins", name: "Sarah Jenkins", role: "Chief Executive Officer", supervisor: "", department: "Executive", email: "c2FyYWguamVua2luc0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0101", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" },
-            { id: "Michael Chang", name: "Michael Chang", role: "VP of Engineering", supervisor: "Sarah Jenkins", department: "Engineering", email: "bWljaGFlbC5jaGFuZ0Blc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0102", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
-            { id: "Elena Rostova", name: "Elena Rostova", role: "VP of Product", supervisor: "Sarah Jenkins", department: "Product", email: "ZWxlbmEucm9zdG92YUBlc2Nlby5vcmc=", phoneNumber: "+1 (330) 555-0103", photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200" },
-            { id: "David Vance", name: "David Vance", role: "VP of Marketing", supervisor: "Sarah Jenkins", department: "Marketing", email: "ZGF2aWQudmFuY2VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0104", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200" },
-            { id: "Amina Yusuf", name: "Amina Yusuf", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "YW1pbmEueXVzdWZAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0105", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" },
-            { id: "Liam O'Connor", name: "Liam O'Connor", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "bGlhbS5vY29ubm9yQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0106", photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200" },
-            { id: "Chloe Mercer", name: "Chloe Mercer", role: "Lead Product Designer", supervisor: "Elena Rostova", department: "Product", email: "Y2hsb2UubWVyY2VyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0107", photo: "" },
-            { id: "Marcus Brody", name: "Marcus Brody", role: "Senior Product Manager", supervisor: "Elena Rostova", department: "Product", email: "bWFyY3VzLmJyb2R5QGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0108", photo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200" },
-            { id: "Jessica Taylor", name: "Jessica Taylor", role: "Growth Lead", supervisor: "David Vance", department: "Marketing", email: "amVzc2ljYS50YXlsb3VAZXNjZW8ub3Jn", phoneNumber: "+1 (330) 555-0109", photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" },
-            { id: "Rajesh Kumar", name: "Rajesh Kumar", role: "DevOps Lead", supervisor: "Amina Yusuf", department: "Engineering", email: "cmFqZXNoLmt1bWFyQGVzY2VvLm9yZw==", phoneNumber: "+1 (330) 555-0110", photo: "" }
+            { id: "Sarah Jenkins", name: "Sarah Jenkins", role: "Chief Executive Officer", supervisor: "", department: "Executive", email: "https://www.esceasternohio.org", phoneNumber: "+1 (330) 555-0101", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" },
+            { id: "Michael Chang", name: "Michael Chang", role: "VP of Engineering", supervisor: "Sarah Jenkins", department: "Engineering", email: "https://www.esceasternohio.org", phoneNumber: "+1 (330) 555-0102", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
+            { id: "Elena Rostova", name: "Elena Rostova", role: "VP of Product", supervisor: "Sarah Jenkins", department: "Product", email: "https://www.esceasternohio.org", phoneNumber: "+1 (330) 555-0103", photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200" },
+            { id: "David Vance", name: "David Vance", role: "VP of Marketing", supervisor: "Sarah Jenkins", department: "Marketing", email: "https://www.esceasternohio.org", phoneNumber: "+1 (330) 555-0104", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200" },
+            { id: "Amina Yusuf", name: "Amina Yusuf", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "", phoneNumber: "+1 (330) 555-0105", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" },
+            { id: "Liam O'Connor", name: "Liam O'Connor", role: "Engineering Director", supervisor: "Michael Chang", department: "Engineering", email: "", phoneNumber: "+1 (330) 555-0106", photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200" },
+            { id: "Chloe Mercer", name: "Chloe Mercer", role: "Lead Product Designer", supervisor: "Elena Rostova", department: "Product", email: "", phoneNumber: "+1 (330) 555-0107", photo: "" },
+            { id: "Marcus Brody", name: "Marcus Brody", role: "Senior Product Manager", supervisor: "Elena Rostova", department: "Product", email: "https://www.esceasternohio.org", phoneNumber: "+1 (330) 555-0108", photo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200" },
+            { id: "Jessica Taylor", name: "Jessica Taylor", role: "Growth Lead", supervisor: "David Vance", department: "Marketing", email: "", phoneNumber: "+1 (330) 555-0109", photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" },
+            { id: "Rajesh Kumar", name: "Rajesh Kumar", role: "DevOps Lead", supervisor: "Amina Yusuf", department: "Engineering", email: "", phoneNumber: "+1 (330) 555-0110", photo: "" }
         ];
 
         // Core Application State Managers
@@ -505,15 +466,10 @@
             viewMode: "tree", 
             isDraggingCanvas: false,
             dragStart: { x: 0, y: 0 },
-            isEmailVerified: false,
-            humanVerifyOption: null,
             initialPinchDistance: null,
             initialZoom: 1
         };
 
-        /**
-         * Pulls elegant 2-character initials from dynamic names
-         */
         function getInitials(name) {
             if (!name) return '??';
             const parts = name.trim().split(/\s+/);
@@ -521,9 +477,6 @@
             return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
         }
 
-        /**
-         * Builds structured HTML containing the correct avatar container (image or colorized initials)
-         */
         function getAvatarHtml(photoUrl, name, sizeClasses = 'w-12 h-12 text-sm', shapeClass = 'rounded-full') {
             const hasPhoto = photoUrl && photoUrl.trim() !== '' && !photoUrl.includes('placehold.co') && photoUrl.toLowerCase() !== 'null' && photoUrl.toLowerCase() !== 'undefined';
             
@@ -538,9 +491,6 @@
             }
         }
 
-        /**
-         * Generates deterministic vibrant initials div container based on a quick hash string
-         */
         function getInitialsDiv(name, sizeClasses, shapeClass = 'rounded-full') {
             const initials = getInitials(name);
             const colors = [
@@ -564,9 +514,6 @@
             `;
         }
 
-        /**
-         * Safe fallback triggered if an image load breaks at runtime
-         */
         function showInitialsFallback(imgElement, name, shapeClass = 'rounded-full') {
             const container = imgElement.parentElement;
             if (container) {
@@ -593,9 +540,6 @@
             }
         }
 
-        /**
-         * Converts standard Google Drive file links to high-performance, CORS-friendly direct rendering URLs.
-         */
         function convertGoogleDriveUrl(url) {
             if (!url) return '';
             const trimmed = url.trim();
@@ -611,20 +555,28 @@
             return trimmed;
         }
 
-        // Secure UTF-8 to Base64 encoder helper
-        function safeBtoa(str) {
-            try {
-                return btoa(unescape(encodeURIComponent(str || '')));
-            } catch (e) {
-                return '';
+        // Validate if a parsed text block represents a valid hyperlinked webpage
+        function getValidLink(str) {
+            if (!str) return null;
+            const trimmed = str.trim();
+            if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                return trimmed;
             }
+            if (trimmed.startsWith('www.')) {
+                return 'https://' + trimmed;
+            }
+            // Generic domain pattern validation (excludes email patterns)
+            if (trimmed.includes('.') && !trimmed.includes(' ') && !trimmed.includes('@')) {
+                return 'https://' + trimmed;
+            }
+            return null;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             initializeInteractiveCanvas();
             initializeDraggableNavigation();
             
-            // Auto-minimize instructions widget on smaller mobile screens
+            // Adapt view bounds for phone sizes
             if (window.innerWidth < 768) {
                 toggleNavState(true);
                 const parentEl = document.getElementById('org-chart-navigation');
@@ -644,7 +596,6 @@
         function initializeInteractiveCanvas() {
             const workspace = document.getElementById('canvas-workspace');
 
-            // Mouse Drag/Pan Support
             workspace.addEventListener('mousedown', (e) => {
                 if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
                 state.isDraggingCanvas = true;
@@ -668,7 +619,7 @@
                 if (mover) mover.classList.add('canvas-transition'); 
             });
 
-            // Touch Screen support with explicit passive: false to prevent Safari scroll-blocking
+            // Modern touch event registrations for direct physical iOS pan & pinch-zooming
             workspace.addEventListener('touchstart', (e) => {
                 if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls')) return;
                 
@@ -680,8 +631,7 @@
                         x: e.touches[0].clientX - state.pan.x, 
                         y: e.touches[0].clientY - state.pan.y 
                     };
-                    // Safari requires e.preventDefault to bypass active bounce controls
-                    e.preventDefault();
+                    e.preventDefault(); // Stop rubber-banding
                 } else if (e.touches.length === 2) {
                     state.isDraggingCanvas = false;
                     state.initialPinchDistance = Math.hypot(
@@ -725,9 +675,6 @@
             });
         }
 
-        /**
-         * Slidably toggles sidebars with dimming backdrops
-         */
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -740,17 +687,11 @@
             }
         }
 
-        /**
-         * Initializes drag logic for the floating Org Chart Navigation card and circle button
-         */
         function initializeDraggableNavigation() {
             const navContainer = document.getElementById('org-chart-navigation');
             makeElementDraggable(navContainer, 'drag-handle');
         }
 
-        /**
-         * Configures robust drag event listeners with viewport boundaries clamping
-         */
         function makeElementDraggable(el, handleClass) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             
@@ -769,9 +710,7 @@
             function dragMouseDown(e) {
                 if (e.target.closest('button') && !e.target.closest('#nav-minimized')) return;
                 e.preventDefault();
-                
                 convertToAbsolutePixels();
-
                 pos3 = e.clientX;
                 pos4 = e.clientY;
                 document.onmouseup = closeDragElement;
@@ -780,9 +719,7 @@
 
             function dragTouchStart(e) {
                 if (e.target.closest('button') && !e.target.closest('#nav-minimized')) return;
-                
                 convertToAbsolutePixels();
-
                 pos3 = e.touches[0].clientX;
                 pos4 = e.touches[0].clientY;
                 document.ontouchend = closeDragElement;
@@ -792,10 +729,8 @@
             function convertToAbsolutePixels() {
                 const rect = el.getBoundingClientRect();
                 const pRect = el.parentElement.getBoundingClientRect();
-                
                 const topPx = rect.top - pRect.top;
                 const leftPx = rect.left - pRect.left;
-                
                 el.style.bottom = 'auto';
                 el.style.right = 'auto';
                 el.style.top = topPx + 'px';
@@ -808,7 +743,6 @@
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                
                 updatePosition(el.offsetTop - pos2, el.offsetLeft - pos1);
             }
 
@@ -817,7 +751,6 @@
                 pos2 = pos4 - e.touches[0].clientY;
                 pos3 = e.touches[0].clientX;
                 pos4 = e.touches[0].clientY;
-                
                 updatePosition(el.offsetTop - pos2, el.offsetLeft - pos1);
             }
 
@@ -844,9 +777,6 @@
             }
         }
 
-        /**
-         * Swaps the layout view of the navigation panel (Minimizes to circle or expands to card)
-         */
         window.toggleNavState = function(minimize) {
             const minEl = document.getElementById('nav-minimized');
             const expEl = document.getElementById('nav-expanded');
@@ -905,7 +835,7 @@
         function resetZoomAndPan() {
             const { roots } = getHierarchyMaps();
             if (roots.length > 0 && state.viewMode === 'tree') {
-                zoomToNode(roots[0].id, true); // alignTop = true
+                zoomToNode(roots[0].id, true);
             } else {
                 state.zoom = 1.0;
                 state.pan = { x: 0, y: 0 };
@@ -913,9 +843,6 @@
             }
         }
 
-        /**
-         * Smoothly focus and zoom centered horizontally, optionally alignment to top center
-         */
         function zoomToNode(nodeId, alignTop = false) {
             const workspace = document.getElementById('canvas-workspace');
             const mover = document.getElementById('canvas-mover');
@@ -1109,9 +1036,6 @@
             return nodeHtml;
         }
 
-        /**
-         * Compares two employee objects alphabetically by last name, then first name.
-         */
         function compareNames(a, b) {
             const getNames = (p) => {
                 const parts = p.name.trim().split(/\s+/);
@@ -1127,9 +1051,6 @@
             return na.first.localeCompare(nb.first);
         }
 
-        /**
-         * Generates the HTML layout for a single employee card inside the Directory grid.
-         */
         function renderListCard(p) {
             let supervisorName = "N/A";
             if (p.supervisor) {
@@ -1147,7 +1068,7 @@
                         <h4 class="font-extrabold text-sm truncate text-navy">${escapeHtml(p.name)}</h4>
                         <p class="text-xs text-medgray truncate">${escapeHtml(p.role || 'Contributor')}</p>
                         <div class="flex flex-col mt-1 space-y-0.5 text-[10px] text-lightgray">
-                            <span><i class="fa-solid fa-phone mr-1"></i> ${escapeHtml(p.phoneNumber || 'N/A')}</span>
+                            <span>Phone: ${escapeHtml(p.phoneNumber || 'N/A')}</span>
                         </div>
                     </div>
                     <div class="text-right text-[10px] text-lightgray space-y-1 self-start shrink-0">
@@ -1277,10 +1198,21 @@
                 inspPhotoContainer.innerHTML = getAvatarHtml(person.photo, person.name, 'w-16 h-16 text-lg', 'rounded-xl');
             }
 
-            resetEmailVerificationState();
-
+            // Text-only Phone representation
             document.getElementById('insp-phone').innerText = person.phoneNumber || 'N/A';
-            document.getElementById('phone-tel-btn').href = person.phoneNumber ? `tel:${person.phoneNumber}` : '#';
+
+            // Selectively render Contact Link button block ONLY if Column G contains a valid hyperlinked webpage
+            const contactBlock = document.getElementById('contact-button-block');
+            const contactBtn = document.getElementById('contact-action-btn');
+            const validLink = getValidLink(person.email); // person.email maps directly to Column G values
+
+            if (validLink) {
+                contactBlock.classList.remove('hidden');
+                contactBtn.href = validLink;
+            } else {
+                contactBlock.classList.add('hidden');
+                contactBtn.href = "#";
+            }
 
             const supContainer = document.getElementById('insp-supervisor-container');
             if (person.supervisor) {
@@ -1319,106 +1251,6 @@
             }
         }
 
-        function resetEmailVerificationState() {
-            state.isEmailVerified = false;
-            document.getElementById('secure-email-placeholder').innerHTML = '••••••••@••••.•••';
-            document.getElementById('secure-email-placeholder').classList.remove('text-escblue', 'font-mono');
-            document.getElementById('secure-email-placeholder').classList.add('italic', 'text-medgray');
-            
-            const actionBtn = document.getElementById('email-action-btn');
-            actionBtn.classList.remove('hidden');
-            actionBtn.innerHTML = `<i class="fa-solid fa-unlock text-[9px]"></i> <span>Unlock & Copy</span>`;
-            actionBtn.onclick = initiateSecureEmail;
-
-            document.getElementById('email-verification-step').classList.add('hidden');
-        }
-
-        const VERIFY_SYMBOLS = [
-            { icon: "fa-key", name: "key" },
-            { icon: "fa-shield", name: "shield" },
-            { icon: "fa-lock", name: "lock" },
-            { icon: "fa-check-double", name: "check" },
-            { icon: "fa-robot", name: "robot" }
-        ];
-
-        function initiateSecureEmail() {
-            const stepArea = document.getElementById('email-verification-step');
-            stepArea.classList.remove('hidden');
-
-            const targetIndex = Math.floor(Math.random() * VERIFY_SYMBOLS.length);
-            const targetSymbol = VERIFY_SYMBOLS[targetIndex];
-            state.humanVerifyOption = targetSymbol.name;
-
-            const desc = stepArea.querySelector('p');
-            desc.innerHTML = `Security challenge: Click on the <strong class="text-escblue uppercase font-bold">${targetSymbol.name}</strong> icon:`;
-
-            const shuffled = [...VERIFY_SYMBOLS].sort(() => 0.5 - Math.random());
-            const optionsDiv = document.getElementById('verification-options');
-            optionsDiv.innerHTML = shuffled.map(sym => `
-                <button 
-                    type="button"
-                    onclick="verifyHumanChallenge('${sym.name}')"
-                    class="p-2 border border-slate-200 hover:border-escblue hover:bg-lightblue/10 rounded-lg text-medgray hover:text-escblue transition-all text-xs"
-                    title="${sym.name}"
-                >
-                    <i class="fa-solid ${sym.icon}"></i>
-                </button>
-            `).join('');
-        }
-
-        function copyTextToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.position = "fixed";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showToast('success', 'Email address copied to clipboard!');
-                } else {
-                    showToast('error', 'Unable to copy email.');
-                }
-            } catch (err) {
-                showToast('error', 'Copy execution failed.');
-            }
-            document.body.removeChild(textArea);
-        }
-
-        function verifyHumanChallenge(clickedName) {
-            if (clickedName === state.humanVerifyOption) {
-                state.isEmailVerified = true;
-                const person = state.people.find(p => p.id === state.selectedId);
-                if (person) {
-                    try {
-                        const decryptedEmail = atob(person.email);
-                        
-                        const placeholder = document.getElementById('secure-email-placeholder');
-                        placeholder.innerHTML = `<a href="mailto:${decryptedEmail}" class="text-escblue hover:underline break-all font-mono font-semibold">${decryptedEmail}</a>`;
-                        placeholder.classList.remove('italic', 'text-medgray');
-
-                        copyTextToClipboard(decryptedEmail);
-
-                        const actionBtn = document.getElementById('email-action-btn');
-                        if (actionBtn) {
-                            actionBtn.classList.add('hidden');
-                        }
-
-                        document.getElementById('email-verification-step').classList.add('hidden');
-                        openCopySuccessModal();
-                    } catch (err) {
-                        showToast('error', 'Error reading keys.');
-                    }
-                }
-            } else {
-                showToast('error', 'Verification challenge failed. Try again.');
-                initiateSecureEmail();
-            }
-        }
-
         function toggleNodeCollapse(nodeId) {
             state.collapsed[nodeId] = !state.collapsed[nodeId];
             renderApp();
@@ -1434,7 +1266,6 @@
                 renderApp();
             }
 
-            // Slide open profile inspector sidebar drawer on mobile/tablet screens automatically
             if (window.innerWidth < 1024) {
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
@@ -1576,7 +1407,7 @@
                 }
 
                 state.people = parsed;
-                state.collapsed = {}; // Force all nodes to be fully expanded
+                state.collapsed = {};
 
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-emerald-600 uppercase flex items-center space-x-1";
@@ -1608,7 +1439,7 @@
                 state.selectedId = null;
                 renderApp();
 
-                console.error("Google Sheets synchronization bypassed. Blocker interface active.", err);
+                console.error("Google Sheets synchronization bypassed.", err);
                 openCacheWarningModal();
             } finally {
                 clearTimeout(slowSyncTimer);
@@ -1644,16 +1475,6 @@
 
         function hideSlowSyncModal() {
             const modal = document.getElementById('slow-sync-modal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function openCopySuccessModal() {
-            const modal = document.getElementById('copy-success-modal');
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closeCopySuccessModal() {
-            const modal = document.getElementById('copy-success-modal');
             if (modal) modal.classList.add('hidden');
         }
 
@@ -1714,7 +1535,10 @@
             const roleIdx = headers.findIndex(h => h === 'role' || h.includes('title') || h.includes('position'));
             const deptIdx = headers.findIndex(h => h.includes('dept') || h.includes('department'));
             const supervisorIdx = headers.findIndex(h => h === 'supervisorid' || h === 'supervisor' || h.includes('reports') || h.includes('manager'));
-            const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+            
+            // Highly robust index finder supporting standard "Email" columns and custom "ContactURL" columns seamlessly
+            const emailIdx = headers.findIndex(h => h.includes('contacturl') || h.includes('contact') || h.includes('url') || h.includes('link') || h.includes('email') || h.includes('mail'));
+            
             const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('tel') || h.includes('number'));
             const photoIdx = headers.findIndex(h => h.includes('photo') || h.includes('image'));
 
@@ -1723,13 +1547,11 @@
                 
                 const nameVal = fetchVal(nameIdx, 'Unknown Staff');
                 const rawId = fetchVal(idIdx) || nameVal.trim() || `auto-${idx + 1}`;
-                const rawEmail = fetchVal(emailIdx, `staff.${idx}@esceo.org`);
+                const rawEmail = fetchVal(emailIdx, ''); // Direct Raw retrieval (No Base64 Encryption)
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
                 const rawPhotoUrl = fetchVal(photoIdx, '');
                 
                 const formattedPhotoUrl = convertGoogleDriveUrl(rawPhotoUrl);
-
-                const encryptedEmail = safeBtoa(rawEmail);
 
                 return {
                     id: rawId,
@@ -1737,7 +1559,7 @@
                     role: fetchVal(roleIdx, 'Contributor'),
                     department: fetchVal(deptIdx, 'Unassigned'),
                     supervisor: fetchVal(supervisorIdx, ''),
-                    email: encryptedEmail,
+                    email: rawEmail, // Passed through cleanly for direct contact link check
                     phoneNumber: phoneVal,
                     photo: formattedPhotoUrl
                 };
