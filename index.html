@@ -184,7 +184,7 @@
                 <!-- Selected Employee Profile Inspector Detail Card -->
                 <div id="inspector-card" class="hidden bg-slate-50 rounded-xl border border-lightgray/20 p-4 sm:p-5 space-y-5 shadow-inner animate-fade-in flex-1">
                     <div class="flex items-start space-x-4">
-                        <div id="insp-photo-container" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow border border-slate-150">
+                        <div id="insp-photo-container" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow border border-slate-150 cursor-pointer" title="Click to view larger image">
                             <!-- Initials or Image dynamic rendering inside Javascript -->
                         </div>
                         <div class="flex-1 min-w-0">
@@ -386,6 +386,31 @@
         </main>
     </div>
 
+    <!-- Interactive Lightbox Modal (For Profile Photo Previews) -->
+    <div id="image-lightbox-modal" onclick="closeImageLightbox()" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="relative max-w-lg w-full p-4 mx-4 flex flex-col items-center" onclick="event.stopPropagation()">
+            <!-- Close Button -->
+            <button onclick="closeImageLightbox()" class="absolute -top-12 right-2 text-white hover:text-slate-300 focus:outline-none text-2xl transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <!-- Lightbox Frame - Set to max-w-md for larger viewports -->
+            <div class="bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200 max-w-md w-full flex flex-col items-center p-6 animate-fade-in">
+                <!-- Large Avatar Photo/Initials Container - Set to 72x72 / 80x80 -->
+                <div id="lightbox-image-container" class="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-slate-50 flex items-center justify-center mb-5 shrink-0">
+                    <!-- Javascript dynamically renders contents here -->
+                </div>
+                
+                <!-- Staff Detail Overlay inside Lightbox -->
+                <h3 id="lightbox-name" class="font-extrabold text-navy text-xl text-center">Staff Name</h3>
+                <p id="lightbox-role" class="text-sm text-escblue font-bold text-center mt-0.5">Role / Position</p>
+                <span id="lightbox-dept" class="inline-block text-[10px] bg-lightblue/10 text-escblue px-2.5 py-0.5 rounded-full font-bold mt-2.5 uppercase tracking-wide">
+                    Department
+                </span>
+            </div>
+        </div>
+    </div>
+
     <!-- Interactive Sticky Footer Area -->
     <footer class="bg-white border-t border-slate-200 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center text-center gap-2 text-[10px] sm:text-xs text-lightgray z-20 shrink-0">
         <div>
@@ -477,7 +502,8 @@
             return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
         }
 
-        function getAvatarHtml(photoUrl, name, sizeClasses = 'w-12 h-12 text-sm', shapeClass = 'rounded-full') {
+        // Updated sizing to match compact cards
+        function getAvatarHtml(photoUrl, name, sizeClasses = 'w-10 h-10 text-xs', shapeClass = 'rounded-full') {
             const hasPhoto = photoUrl && photoUrl.trim() !== '' && !photoUrl.includes('placehold.co') && photoUrl.toLowerCase() !== 'null' && photoUrl.toLowerCase() !== 'undefined';
             
             if (hasPhoto) {
@@ -832,6 +858,41 @@
             updateCanvasTransform();
         }
 
+        // --- Lightbox Modal Logic ---
+        function openImageLightbox(person) {
+            const modal = document.getElementById('image-lightbox-modal');
+            const imgContainer = document.getElementById('lightbox-image-container');
+            const nameEl = document.getElementById('lightbox-name');
+            const roleEl = document.getElementById('lightbox-role');
+            const deptEl = document.getElementById('lightbox-dept');
+
+            if (!modal || !person) return;
+
+            nameEl.innerText = person.name;
+            roleEl.innerText = person.role || 'Contributor';
+            deptEl.innerText = person.department;
+
+            // Generate beautifully scaled, high-fidelity avatar images inside the larger modal container
+            imgContainer.innerHTML = getAvatarHtml(person.photo, person.name, 'w-64 h-64 sm:w-72 sm:h-72 text-6xl sm:text-7xl', 'rounded-2xl');
+
+            modal.classList.remove('hidden');
+            
+            // Add native Keyboard keydown support
+            document.addEventListener('keydown', handleLightboxEsc);
+        }
+
+        function closeImageLightbox() {
+            const modal = document.getElementById('image-lightbox-modal');
+            if (modal) modal.classList.add('hidden');
+            document.removeEventListener('keydown', handleLightboxEsc);
+        }
+
+        function handleLightboxEsc(e) {
+            if (e.key === 'Escape') {
+                closeImageLightbox();
+            }
+        }
+
         function resetZoomAndPan() {
             const { roots } = getHierarchyMaps();
             if (roots.length > 0 && state.viewMode === 'tree') {
@@ -936,6 +997,7 @@
             return { roots, childrenMap };
         }
 
+        // Dynamically creates compact HTML elements for reporting tiers
         function generateTreeHtml(node, childrenMap) {
             const children = childrenMap[node.id] || [];
             const isCollapsed = state.collapsed[node.id];
@@ -952,7 +1014,8 @@
                 if (supObj) supervisorName = supObj.name;
             }
 
-            const cardClasses = `org-node-card cursor-pointer transition-all duration-300 transform hover:-translate-y-1 w-64 bg-white rounded-xl shadow-md hover:shadow-xl border-2 p-4 flex flex-col items-center text-center relative z-10
+            // Compact layout width: w-52 (208px) instead of w-64
+            const cardClasses = `org-node-card cursor-pointer transition-all duration-300 transform hover:-translate-y-1 w-52 bg-white rounded-xl shadow-md hover:shadow-xl border-2 p-3 flex flex-col items-center text-center relative z-10
                 ${isSelected ? 'border-escblue ring-4 ring-lightblue/20' : 'border-lightgray/25'}
                 ${isMatched ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-100' : ''}
             `;
@@ -961,32 +1024,32 @@
                 <div class="flex flex-col items-center ${state.layoutMode === 'vertical' ? '' : 'sm:flex-row sm:items-start'} relative">
                     <div class="flex flex-col items-center relative z-10">
                         <div id="node-card-${node.id}" onclick="selectPerson('${node.id}')" class="${cardClasses}">
-                            <span class="text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-lightblue/10 text-escblue mb-2">
+                            <span class="text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-lightblue/10 text-escblue mb-1.5">
                                 ${escapeHtml(node.department)}
                             </span>
                             
-                            <div class="relative mb-2">
-                                ${getAvatarHtml(node.photo, node.name, 'w-12 h-12 text-xs', 'rounded-full')}
-                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full z-10"></span>
+                            <div class="relative mb-1.5">
+                                ${getAvatarHtml(node.photo, node.name, 'w-10 h-10 text-xs', 'rounded-full')}
+                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full z-10"></span>
                             </div>
 
-                            <h4 class="font-bold text-navy text-sm truncate w-full">${escapeHtml(node.name)}</h4>
-                            <p class="text-xs text-medgray font-medium truncate w-full mt-0.5">${escapeHtml(node.role || 'Contributor')}</p>
+                            <h4 class="font-bold text-navy text-xs truncate w-full">${escapeHtml(node.name)}</h4>
+                            <p class="text-[10px] text-medgray font-medium truncate w-full mt-0.5">${escapeHtml(node.role || 'Contributor')}</p>
                             
-                            <div class="mt-2.5 text-[9px] text-lightgray font-semibold border-t border-slate-100 pt-2 w-full flex items-center justify-center space-x-1">
+                            <div class="mt-2 text-[9px] text-lightgray font-semibold border-t border-slate-100 pt-1.5 w-full flex items-center justify-center space-x-1">
                                 <span class="text-lightgray">Supervisor:</span>
-                                <span class="text-medgray truncate max-w-[130px]">${escapeHtml(supervisorName)}</span>
+                                <span class="text-medgray truncate max-w-[100px]">${escapeHtml(supervisorName)}</span>
                             </div>
 
                             ${children.length > 0 ? `
-                                <button onclick="event.stopPropagation(); toggleNodeCollapse('${node.id}')" class="absolute -bottom-3 bg-white text-medgray hover:text-escblue border border-lightgray/40 rounded-full p-1 shadow-md hover:shadow-lg transition-all focus:outline-none z-20">
-                                    <i class="fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-[10px] w-3.5 h-3.5 flex items-center justify-center"></i>
+                                <button onclick="event.stopPropagation(); toggleNodeCollapse('${node.id}')" class="absolute -bottom-2.5 bg-white text-medgray hover:text-escblue border border-lightgray/40 rounded-full p-1 shadow-md hover:shadow-lg transition-all focus:outline-none z-20">
+                                    <i class="fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-[9px] w-3 h-3 flex items-center justify-center"></i>
                                 </button>
                             ` : ''}
                         </div>
 
                         ${children.length > 0 && isCollapsed ? `
-                            <div class="mt-4 text-[9px] text-escblue font-bold bg-lightblue/10 px-2.5 py-0.5 rounded-full border border-lightblue/20 animate-fade-in">
+                            <div class="mt-3.5 text-[8px] text-escblue font-bold bg-lightblue/10 px-2 py-0.5 rounded-full border border-lightblue/20 animate-fade-in">
                                 ${children.length} Direct Reports
                             </div>
                         ` : ''}
@@ -996,17 +1059,17 @@
             if (children.length > 0 && !isCollapsed) {
                 const layoutDir = state.layoutMode;
                 nodeHtml += `
-                    <div class="flex ${layoutDir === 'vertical' ? 'flex-col items-center mt-8 pt-4 w-full relative' : 'sm:flex-row sm:pl-8 sm:py-2 relative flex-col items-center mt-8 sm:mt-0'}">
+                    <div class="flex ${layoutDir === 'vertical' ? 'flex-col items-center mt-6 pt-3 w-full relative' : 'sm:flex-row sm:pl-6 sm:py-1.5 relative flex-col items-center mt-6 sm:mt-0'}">
                         
                         ${layoutDir === 'vertical' ? `
-                            <div class="tree-vertical-line top-0 h-4" style="left: calc(50% - 1px);"></div>
-                            ${children.length > 1 ? `<div class="tree-horizontal-line top-4" style="width: calc(100% - 256px); left: 128px;"></div>` : ''}
+                            <div class="tree-vertical-line top-0 h-3" style="left: calc(50% - 1px);"></div>
+                            ${children.length > 1 ? `<div class="tree-horizontal-line top-3" style="width: calc(100% - 208px); left: 104px;"></div>` : ''}
                         ` : `
-                            <div class="tree-horizontal-line left-0 top-1/2 w-8 transform -translate-y-1/2 hidden sm:block"></div>
-                            ${children.length > 1 ? `<div class="tree-vertical-line left-8" style="top: 24px; bottom: 24px;"></div>` : ''}
+                            <div class="tree-horizontal-line left-0 top-1/2 w-6 transform -translate-y-1/2 hidden sm:block"></div>
+                            ${children.length > 1 ? `<div class="tree-vertical-line left-6" style="top: 20px; bottom: 20px;"></div>` : ''}
                         `}
 
-                        <div class="flex ${layoutDir === 'vertical' ? 'flex-row justify-center items-start gap-8 w-full' : 'flex-col justify-center gap-6'}">
+                        <div class="flex ${layoutDir === 'vertical' ? 'flex-row justify-center items-start gap-5 w-full' : 'flex-col justify-center gap-5'}">
                             ${children.map((child, index) => {
                                 const isFirst = index === 0;
                                 const isLast = index === children.length - 1;
@@ -1014,13 +1077,13 @@
                                 return `
                                     <div class="relative flex flex-col items-center">
                                         ${layoutDir === 'vertical' && children.length > 1 ? `
-                                            ${isFirst ? `<div class="absolute top-[-16px] left-0 right-1/2 h-0.5 bg-slate-50 z-0"></div>` : ''}
-                                            ${isLast ? `<div class="absolute top-[-16px] left-1/2 right-0 h-0.5 bg-slate-50 z-0"></div>` : ''}
-                                            <div class="tree-vertical-line top-[-16px] h-4" style="left: calc(50% - 1px);"></div>
+                                            ${isFirst ? `<div class="absolute top-[-12px] left-0 right-1/2 h-0.5 bg-slate-50 z-0"></div>` : ''}
+                                            ${isLast ? `<div class="absolute top-[-12px] left-1/2 right-0 h-0.5 bg-slate-50 z-0"></div>` : ''}
+                                            <div class="tree-vertical-line top-[-12px] h-3" style="left: calc(50% - 1px);"></div>
                                         ` : ''}
 
                                         ${layoutDir === 'horizontal' && children.length > 1 ? `
-                                            <div class="tree-horizontal-line left-4 top-1/2 w-4 transform -translate-y-1/2 hidden sm:block"></div>
+                                            <div class="tree-horizontal-line left-3 top-1/2 w-3 transform -translate-y-1/2 hidden sm:block"></div>
                                         ` : ''}
 
                                         ${generateTreeHtml(child, childrenMap)}
@@ -1060,7 +1123,7 @@
 
             return `
                 <div onclick="selectPerson('${p.id}')" class="bg-white p-4 rounded-xl border border-lightgray/20 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center space-x-4 animate-fade-in">
-                    ${getAvatarHtml(p.photo, p.name, 'w-12 h-12 text-xs', 'rounded-full')}
+                    ${getAvatarHtml(p.photo, p.name, 'w-10 h-10 text-xs', 'rounded-full')}
                     <div class="flex-1 min-w-0">
                         <span class="text-[9px] font-bold text-escblue uppercase tracking-widest block mb-0.5">
                             ${escapeHtml(p.department)}
@@ -1091,7 +1154,7 @@
 
                 if (roots.length > 0) {
                     canvasMover.innerHTML = `
-                        <div class="flex flex-col items-center space-y-12">
+                        <div class="flex flex-col items-center space-y-10">
                             ${roots.map(root => generateTreeHtml(root, childrenMap)).join('')}
                         </div>
                     `;
@@ -1195,7 +1258,9 @@
             
             const inspPhotoContainer = document.getElementById('insp-photo-container');
             if (inspPhotoContainer) {
-                inspPhotoContainer.innerHTML = getAvatarHtml(person.photo, person.name, 'w-16 h-16 text-lg', 'rounded-xl');
+                // Display interactive avatar inside Sidebar profile inspector
+                inspPhotoContainer.innerHTML = getAvatarHtml(person.photo, person.name, 'w-16 h-16 text-lg cursor-zoom-in hover:opacity-90 transition-all border border-slate-300', 'rounded-xl');
+                inspPhotoContainer.onclick = () => openImageLightbox(person);
             }
 
             // Text-only Phone representation
