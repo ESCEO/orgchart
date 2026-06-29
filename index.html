@@ -108,7 +108,7 @@
 
         <!-- Alert Banner Area & Condensed Database Status Controls -->
         <div class="flex items-center space-x-1.5 sm:space-x-3">
-            <div id="toast-info" class="hidden flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
+            <div id="toast-info" class="hidden flex items-center space-x-2 bg-blue-50/10 border border-blue-200/50 text-blue-700 px-3 py-1.5 rounded-lg text-xs animate-fade-in">
                 <i class="fa-solid fa-spinner animate-spin text-escblue"></i>
                 <span id="toast-info-msg">Connecting database...</span>
             </div>
@@ -239,7 +239,8 @@
                             <span class="text-[10px] font-bold uppercase tracking-wider text-lightgray block mb-2" id="insp-reports-title">
                                 Direct Reports (0)
                             </span>
-                            <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1" id="insp-reports-list">
+                            <!-- set max-h-[204px] to perfectly display exactly 5 full lines of reports (5 buttons of 36px + 4 margins of 6px) -->
+                            <div class="space-y-1.5 max-h-[204px] overflow-y-auto pr-1" id="insp-reports-list">
                                 <!-- Dynamic elements nested here -->
                             </div>
                         </div>
@@ -374,11 +375,31 @@
                                 <i class="fa-solid fa-minus text-[10px] leading-none"></i>
                             </button>
                         </div>
-                        <ul class="text-[9px] sm:text-[10px] text-medgray space-y-1 list-disc pl-4">
-                            <li>Left-click / drag anywhere on canvas background to Pan/Drag map.</li>
-                            <li>Two-finger pinch gesture zooms in and out on touch screens.</li>
-                            <li>Click node expand arrows to open reporting branches.</li>
-                        </ul>
+                        
+                        <!-- Rich, comprehensive device-specific instructions -->
+                        <div class="text-[9px] sm:text-[10px] text-medgray space-y-2">
+                            <div class="space-y-1">
+                                <span class="font-extrabold text-navy uppercase text-[8px] tracking-wider block">
+                                    <i class="fa-solid fa-desktop text-escblue mr-1"></i> Desktop Gestures
+                                </span>
+                                <ul class="list-disc pl-3.5 space-y-0.5">
+                                    <li>Click & drag background to pan/move around.</li>
+                                    <li>Scroll wheel or bottom-right controls to zoom.</li>
+                                    <li>Click any card to inspect details in the sidebar.</li>
+                                </ul>
+                            </div>
+                            <div class="border-t border-slate-150 pt-1.5 space-y-1">
+                                <span class="font-extrabold text-navy uppercase text-[8px] tracking-wider block">
+                                    <i class="fa-solid fa-mobile-screen-button text-escblue mr-1"></i> Mobile Gestures
+                                </span>
+                                <ul class="list-disc pl-3.5 space-y-0.5">
+                                    <li>Tap top-left <i class="fa-solid fa-bars text-escblue inline"></i> to search or view profile details.</li>
+                                    <li>Single-finger drag to pan the workspace.</li>
+                                    <li>Pinch two fingers together or apart to zoom.</li>
+                                    <li>Tap any card to slide open details instantly.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -893,6 +914,30 @@
             }
         }
 
+        // Generate dynamic parent-child relationships map
+        function getHierarchyMaps() {
+            const roots = [];
+            const childrenMap = {};
+
+            state.people.forEach(p => {
+                childrenMap[p.id] = [];
+            });
+
+            state.people.forEach(p => {
+                const supId = p.supervisor;
+                const hasValidSupervisor = supId && state.people.some(parent => parent.id === supId);
+                
+                if (!supId || !hasValidSupervisor) {
+                    roots.push(p);
+                } else {
+                    if (!childrenMap[supId]) childrenMap[supId] = [];
+                    childrenMap[supId].push(p);
+                }
+            });
+
+            return { roots, childrenMap };
+        }
+
         function resetZoomAndPan() {
             const { roots } = getHierarchyMaps();
             if (roots.length > 0 && state.viewMode === 'tree') {
@@ -972,29 +1017,6 @@
                     });
                 });
             }
-        }
-
-        function getHierarchyMaps() {
-            const roots = [];
-            const childrenMap = {};
-
-            state.people.forEach(p => {
-                childrenMap[p.id] = [];
-            });
-
-            state.people.forEach(p => {
-                const supId = p.supervisor;
-                const hasValidSupervisor = supId && state.people.some(parent => parent.id === supId);
-                
-                if (!supId || !hasValidSupervisor) {
-                    roots.push(p);
-                } else {
-                    if (!childrenMap[supId]) childrenMap[supId] = [];
-                    childrenMap[supId].push(p);
-                }
-            });
-
-            return { roots, childrenMap };
         }
 
         // Dynamically creates compact HTML elements for reporting tiers
@@ -1235,6 +1257,7 @@
             updateProfileInspector();
         }
 
+        // Expanded Sidebar Profile updater
         function updateProfileInspector() {
             if (!state.selectedId) {
                 document.getElementById('inspector-card').classList.add('hidden');
@@ -1301,12 +1324,15 @@
             }
 
             const reports = state.people.filter(p => p.supervisor === person.id);
+            reports.sort(compareNames); // Sort direct reports alphabetically by last name and then first name
+            
             document.getElementById('insp-reports-title').innerText = `Direct Reports (${reports.length})`;
 
             const reportsList = document.getElementById('insp-reports-list');
             if (reports.length > 0) {
+                // standardized each child button height to precisely h-9 (36px) and padding px-2.5
                 reportsList.innerHTML = reports.map(child => `
-                    <button onclick="selectPerson('${child.id}')" class="w-full text-left flex items-center justify-between p-2 hover:bg-slate-100 rounded-lg border border-slate-100 transition-all">
+                    <button onclick="selectPerson('${child.id}')" class="w-full h-9 text-left flex items-center justify-between px-2.5 hover:bg-slate-100 rounded-lg border border-slate-100 transition-all">
                         <span class="truncate text-[11px] font-bold text-escgray">${escapeHtml(child.name)} <span class="text-lightgray font-medium font-mono text-[10px]">— ${escapeHtml(child.role || 'Reports')}</span></span>
                         <i class="fa-solid fa-arrow-turn-up text-lightgray text-[9px] rotate-90"></i>
                     </button>
@@ -1672,6 +1698,7 @@
             }
         }
 
+        // Custom HTML escaper 
         function escapeHtml(str) {
             if (!str) return '';
             return str
