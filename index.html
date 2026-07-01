@@ -199,6 +199,8 @@
                             placeholder="Search by name, department, supervisor..."
                             class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-escblue placeholder-lightgray text-escgray font-medium"
                         />
+                        <!-- Dropdown Autocomplete suggestions overlay container -->
+                        <div id="search-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 divide-y divide-slate-100"></div>
                     </div>
                 </div>
 
@@ -356,7 +358,7 @@
                     <div class="max-w-4xl mx-auto space-y-6">
                         <div class="flex justify-between items-center flex-wrap gap-2">
                             <div>
-                                <h2 class="text-sm sm:text-lg font-bold">Comprehensive Directory Grid</h2>
+                                <h2 class="text-sm sm:text-lg font-bold text-navy">Comprehensive Directory Grid</h2>
                                 <p class="text-[10px] sm:text-xs text-lightgray mt-0.5">Filter results dynamically in the sidebar search input</p>
                             </div>
                             <span id="directory-total-badge" class="text-[10px] sm:text-xs font-semibold bg-slate-200 text-medgray px-3 py-1 rounded-full">
@@ -671,6 +673,25 @@
             renderApp();
             resetZoomAndPan();
             syncGoogleSheet();
+
+            // Set up document click dismissals for autocomplete dropdown
+            document.addEventListener('click', (e) => {
+                const suggestionsContainer = document.getElementById('search-suggestions');
+                const searchInput = document.getElementById('search-input');
+                if (suggestionsContainer && !suggestionsContainer.contains(e.target) && e.target !== searchInput) {
+                    suggestionsContainer.classList.add('hidden');
+                }
+            });
+
+            // Focus suggestion trigger listener
+            const searchInputEl = document.getElementById('search-input');
+            if (searchInputEl) {
+                searchInputEl.addEventListener('focus', () => {
+                    if (searchInputEl.value.trim().length > 0) {
+                        updateSuggestions(searchInputEl.value);
+                    }
+                });
+            }
         });
 
         function initializeInteractiveCanvas() {
@@ -1103,7 +1124,121 @@
             }
         }
 
-        function handleSearch(query) {
+        // JS Escape helper for dynamic selection injections
+        function escapeJsString(str) {
+            if (!str) return '';
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // Live autocomplete suggestor compiler
+        function updateSuggestions(query) {
+            const suggestionsContainer = document.getElementById('search-suggestions');
+            if (!suggestionsContainer) return;
+            
+            const trimmedQuery = query.toLowerCase().trim();
+            if (!trimmedQuery) {
+                suggestionsContainer.classList.add('hidden');
+                suggestionsContainer.innerHTML = '';
+                return;
+            }
+
+            // Match staff members
+            const matchedStaff = state.people.filter(p => 
+                p.name.toLowerCase().includes(trimmedQuery) ||
+                (p.role && p.role.toLowerCase().includes(trimmedQuery))
+            ).slice(0, 5); // Limit to top 5 hits
+
+            // Match unique departments
+            const departments = [...new Set(state.people.map(p => p.department).filter(Boolean))];
+            const matchedDepts = departments.filter(d => 
+                d.toLowerCase().includes(trimmedQuery)
+            ).slice(0, 3); // Limit to top 3 departments
+
+            if (matchedStaff.length === 0 && matchedDepts.length === 0) {
+                suggestionsContainer.innerHTML = `
+                    <div class="p-3 text-xs text-lightgray italic text-center select-none">No matches found</div>
+                `;
+                suggestionsContainer.classList.remove('hidden');
+                return;
+            }
+
+            let html = '';
+
+            if (matchedStaff.length > 0) {
+                html += `
+                    <div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-lightgray select-none">
+                        Staff Members
+                    </div>
+                    <div class="divide-y divide-slate-50">
+                `;
+                matchedStaff.forEach(p => {
+                    html += `
+                        <div onclick="selectSuggestion('staff', '${escapeJsString(p.id)}')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center space-x-2.5 transition-colors">
+                            ${getAvatarHtml(p.photo, p.name, 'w-6 h-6 text-[8px]', 'rounded-full')}
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-bold text-navy truncate">${escapeHtml(p.name)}</div>
+                                <div class="text-[10px] text-lightgray truncate">${escapeHtml(p.role || 'Staff')}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            if (matchedDepts.length > 0) {
+                html += `
+                    <div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-lightgray border-t border-slate-100 select-none">
+                        Departments
+                    </div>
+                    <div class="divide-y divide-slate-50">
+                `;
+                matchedDepts.forEach(d => {
+                    html += `
+                        <div onclick="selectSuggestion('department', '${escapeJsString(d)}')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center space-x-2.5 transition-colors">
+                            <div class="w-6 h-6 rounded-full bg-lightblue/10 text-escblue flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-building text-[10px]"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-bold text-navy truncate">${escapeHtml(d)}</div>
+                                <div class="text-[9px] text-lightgray">Department</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            suggestionsContainer.innerHTML = html;
+            suggestionsContainer.classList.remove('hidden');
+        }
+
+        // Selection router triggered upon autocomplete clicks
+        window.selectSuggestion = function(type, value) {
+            const suggestionsContainer = document.getElementById('search-suggestions');
+            const searchInput = document.getElementById('search-input');
+            
+            if (type === 'staff') {
+                selectPerson(value);
+                const person = state.people.find(p => p.id === value);
+                if (person && searchInput) {
+                    searchInput.value = person.name;
+                }
+                // Reset search query filter state to avoid dimming adjacent tree nodes
+                state.searchQuery = '';
+                renderApp();
+            } else if (type === 'department') {
+                if (searchInput) {
+                    searchInput.value = value;
+                }
+                handleSearch(value, true);
+            }
+            
+            if (suggestionsContainer) {
+                suggestionsContainer.classList.add('hidden');
+            }
+        };
+
+        function handleSearch(query, skipSuggestions = false) {
             state.searchQuery = query.toLowerCase().trim();
             let firstMatchId = null;
             if (state.searchQuery) {
@@ -1114,6 +1249,10 @@
 
                     if (matchesName || matchesDept || matchesRole) {
                         ensureNodeIsVisible(p.id);
+                        // Force uncollapse matched supervisor nodes so we can see their subordinates
+                        if (state.collapsed[p.id]) {
+                            delete state.collapsed[p.id];
+                        }
                         if (!firstMatchId) {
                             firstMatchId = p.id;
                         }
@@ -1127,6 +1266,10 @@
                 setTimeout(() => {
                     zoomToNode(firstMatchId);
                 }, 100);
+            }
+
+            if (!skipSuggestions) {
+                updateSuggestions(query);
             }
         }
 
@@ -1234,6 +1377,7 @@
             return nodeHtml;
         }
 
+        // Generates simple list cards (Reverted to the clean classic layout)
         function renderListCard(p) {
             let supervisorName = "N/A";
             if (p.supervisor) {
@@ -1454,6 +1598,7 @@
             renderApp();
         }
 
+        // Classic selection: clicking a card on List view automatically switches to Tree view and centers
         function selectPerson(nodeId) {
             state.selectedId = nodeId;
             ensureNodeIsVisible(nodeId);
@@ -1464,7 +1609,7 @@
                 renderApp();
             }
 
-            if (window.innerWidth < 1024) {
+            if (window.innerWidth < 768) {
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
                 if (sidebar && sidebar.classList.contains('-translate-x-full')) {
@@ -1584,10 +1729,9 @@
             const id = setTimeout(() => controller.abort(), timeout);
             try {
                 const response = await fetch(url, { ...options, signal: controller.signal });
-                clearTimeout(id);
-                return response;
+                if (!response.ok) throw new Error('Query flat.');
+                return await response.text();
             } catch (error) {
-                clearTimeout(id);
                 throw error;
             }
         }
@@ -1595,7 +1739,7 @@
         async function fetchWithFallback(url) {
             try {
                 const res = await fetchWithTimeout(url, {}, 3500);
-                if (res.ok) return await res.text();
+                return res;
             } catch (e) {
                 console.warn("Direct fetch restricted. Cycling to proxy 1...", e);
             }
@@ -1603,7 +1747,7 @@
             try {
                 const proxyUrl1 = "https://corsproxy.io/?url=" + encodeURIComponent(url);
                 const res = await fetchWithTimeout(proxyUrl1, {}, 3500);
-                if (res.ok) return await res.text();
+                return res;
             } catch (e) {
                 console.warn("Proxy 1 failed. Cycling to proxy 2...", e);
             }
@@ -1611,7 +1755,7 @@
             try {
                 const proxyUrl2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
                 const res = await fetchWithTimeout(proxyUrl2, {}, 4000);
-                if (res.ok) return await res.text();
+                return res;
             } catch (e) {
                 console.warn("Proxy 2 failed. Cycling to proxy 3...", e);
             }
@@ -1619,7 +1763,7 @@
             try {
                 const proxyUrl3 = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
                 const res = await fetchWithTimeout(proxyUrl3, {}, 4000);
-                if (res.ok) return await res.text();
+                return res;
             } catch (e) {
                 console.error("All sync proxies exhausted.", e);
             }
@@ -1799,10 +1943,13 @@
             const photoIdx = headers.findIndex(h => h.includes('photo') || h.includes('image'));
 
             const parsedEmployees = validRows.slice(1).map((r, idx) => {
-                const fetchVal = (index, fallback = '') => (index !== -1 && r[index] !== undefined) ? r[index] : fallback;
+                const fetchVal = (index, fallback = '') => {
+                    if (index === -1 || r[index] === undefined) return fallback;
+                    return String(r[index]).trim();
+                };
                 
                 const nameVal = fetchVal(nameIdx, 'Unknown Staff');
-                const rawId = fetchVal(idIdx) || nameVal.trim() || `auto-${idx + 1}`;
+                const rawId = fetchVal(idIdx) || nameVal || `auto-${idx + 1}`;
                 const rawEmail = fetchVal(emailIdx, ''); // Direct Raw retrieval (No Base64 Encryption)
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
                 const rawPhotoUrl = fetchVal(photoIdx, '');
