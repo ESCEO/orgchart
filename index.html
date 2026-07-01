@@ -28,7 +28,7 @@
     <!-- FontAwesome for robust modern utility icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts for premium clean typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.preconnect.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
     
@@ -55,9 +55,14 @@
         .canvas-container {
             cursor: grab;
             touch-action: none; /* Crucial for iOS/Safari default swipe suppression */
+            transition: box-shadow 0.3s ease;
         }
         .canvas-container:active {
             cursor: grabbing;
+        }
+        /* Beautiful active panning vignette feedback */
+        .canvas-panning-active {
+            box-shadow: inset 0 0 50px rgba(63, 100, 175, 0.18) !important;
         }
         /* Smooth transition class for fluid zoom-to-card actions */
         .canvas-transition {
@@ -73,6 +78,22 @@
             height: 2px;
             background-color: #898B8B;
             position: absolute;
+        }
+        /* Active Search Match Pulsing Highlight */
+        @keyframes pulse-highlight {
+            0%, 100% {
+                transform: scale(1.04);
+                box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3), 0 4px 6px -4px rgba(245, 158, 11, 0.3);
+            }
+            50% {
+                transform: scale(1.08);
+                box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.5), 0 8px 10px -6px rgba(245, 158, 11, 0.5);
+                border-color: #f59e0b;
+            }
+        }
+        .search-match-pulse {
+            animation: pulse-highlight 2s infinite ease-in-out;
+            border-color: #f59e0b !important; /* Force amber-500 */
         }
         /* Fade animations for alerts and modals */
         @keyframes fadeIn {
@@ -297,7 +318,7 @@
             </section>
 
             <!-- Interactive Drag, Pan and Zoom Canvas container -->
-            <div id="canvas-workspace" class="flex-1 relative overflow-hidden select-none bg-slate-50" style="touch-action: none;">
+            <div id="canvas-workspace" class="flex-1 relative overflow-hidden select-none bg-slate-50 canvas-container" style="touch-action: none;">
                 
                 <!-- Seamless Loading Overlay -->
                 <div id="seamless-loader" class="absolute inset-0 bg-slate-50/90 z-30 flex flex-col items-center justify-center space-y-4 animate-fade-in hidden">
@@ -311,9 +332,21 @@
                     </div>
                 </div>
 
+                <!-- Bring Chart Back to Center (Off-screen rescue alert button) -->
+                <button id="recenter-helper-btn" onclick="resetZoomAndPan()" class="hidden absolute top-6 right-24 bg-rose-600 hover:bg-navy text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-lg animate-bounce z-40 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-arrows-to-eye"></i>
+                    <span>Bring Chart Back to Center</span>
+                </button>
+
                 <!-- Graphic Render Box -->
-                <div id="tree-view-canvas" class="w-full h-full overflow-hidden absolute inset-0 canvas-container flex items-center justify-center">
-                    <div id="canvas-mover" class="origin-center p-6 sm:p-12 flex flex-col items-center transform canvas-transition">
+                <div id="tree-view-canvas" class="w-full h-full overflow-hidden absolute inset-0 flex items-center justify-center">
+                    <div id="canvas-mover" class="origin-center p-6 sm:p-12 flex flex-col items-center transform canvas-transition relative">
+                        <!-- Infinite Dotted Canvas Grid Background Layer to perceive movement -->
+                        <div class="absolute pointer-events-none" style="top: -10000px; left: -10000px; width: 20000px; height: 20000px; background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 32px 32px; opacity: 0.55; z-index: 0;"></div>
+                        
+                        <!-- Dynamic SVG Lines Container -->
+                        <svg id="svg-connections" class="absolute inset-0 pointer-events-none w-full h-full z-10"></svg>
+                        
                         <!-- Javascript recursively renders tree structures inside this div -->
                     </div>
                 </div>
@@ -646,6 +679,8 @@
             workspace.addEventListener('mousedown', (e) => {
                 if (e.target.closest('#org-chart-navigation') || e.target.closest('.org-node-card') || e.target.closest('#canvas-controls') || e.target.closest('.sidebar-trigger')) return;
                 state.isDraggingCanvas = true;
+                workspace.classList.add('canvas-panning-active'); // Turn on vignette glow
+                
                 const mover = document.getElementById('canvas-mover');
                 if (mover) mover.classList.remove('canvas-transition'); 
                 state.dragStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
@@ -662,6 +697,7 @@
 
             window.addEventListener('mouseup', () => {
                 state.isDraggingCanvas = false;
+                workspace.classList.remove('canvas-panning-active'); // Turn off vignette glow
                 const mover = document.getElementById('canvas-mover');
                 if (mover) mover.classList.add('canvas-transition'); 
             });
@@ -672,6 +708,8 @@
                 
                 if (e.touches.length === 1) {
                     state.isDraggingCanvas = true;
+                    workspace.classList.add('canvas-panning-active'); // Turn on vignette glow
+                    
                     const mover = document.getElementById('canvas-mover');
                     if (mover) mover.classList.remove('canvas-transition');
                     state.dragStart = { 
@@ -712,6 +750,7 @@
 
             workspace.addEventListener('touchend', () => {
                 state.isDraggingCanvas = false;
+                workspace.classList.remove('canvas-panning-active'); // Turn off vignette glow
                 state.initialPinchDistance = null;
                 const mover = document.getElementById('canvas-mover');
                 if (mover) mover.classList.add('canvas-transition'); 
@@ -871,6 +910,34 @@
             if (mover) {
                 mover.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
                 document.getElementById('zoom-level-indicator').innerText = `${Math.round(state.zoom * 100)}%`;
+                
+                // Safe visibility check to trigger "Bring back to center" overlay
+                checkMoverVisibility();
+            }
+        }
+
+        function checkMoverVisibility() {
+            const workspace = document.getElementById('canvas-workspace');
+            const mover = document.getElementById('canvas-mover');
+            const helperBtn = document.getElementById('recenter-helper-btn');
+            
+            if (!workspace || !mover || !helperBtn) return;
+            
+            const wRect = workspace.getBoundingClientRect();
+            const mRect = mover.getBoundingClientRect();
+            
+            // Show bring-to-center button only if the active canvas layer is fully dragged off-screen
+            const isOffScreen = (
+                mRect.right < wRect.left ||
+                mRect.left > wRect.right ||
+                mRect.bottom < wRect.top ||
+                mRect.top > wRect.bottom
+            );
+            
+            if (isOffScreen && state.people.length > 0) {
+                helperBtn.classList.remove('hidden');
+            } else {
+                helperBtn.classList.add('hidden');
             }
         }
 
@@ -914,6 +981,31 @@
             }
         }
 
+        function compareNames(a, b) {
+            const getNames = (p) => {
+                const parts = p.name.trim().split(/\s+/);
+                const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+                return { last: last.toLowerCase(), first: first.toLowerCase() };
+            };
+            const na = getNames(a);
+            const nb = getNames(b);
+            if (na.last !== nb.last) {
+                return na.last.localeCompare(nb.last);
+            }
+            return na.first.localeCompare(nb.first);
+        }
+
+        // Dedicated custom sorting algorithm to sort by Department first, then Last/First Name
+        function compareByDeptThenName(a, b) {
+            const deptA = (a.department || '').trim().toLowerCase();
+            const deptB = (b.department || '').trim().toLowerCase();
+            if (deptA !== deptB) {
+                return deptA.localeCompare(deptB);
+            }
+            return compareNames(a, b);
+        }
+
         // Generate dynamic parent-child relationships map
         function getHierarchyMaps() {
             const roots = [];
@@ -935,13 +1027,18 @@
                 }
             });
 
+            // Dynamically sort subordinate arrays for each supervisor by Department, then Last/First Name
+            for (const supId in childrenMap) {
+                childrenMap[supId].sort(compareByDeptThenName);
+            }
+
             return { roots, childrenMap };
         }
 
         function resetZoomAndPan() {
             const { roots } = getHierarchyMaps();
             if (roots.length > 0 && state.viewMode === 'tree') {
-                zoomToNode(roots[0].id, true);
+                zoomToNode(roots[0].id, false);
             } else {
                 state.zoom = 1.0;
                 state.pan = { x: 0, y: 0 };
@@ -949,6 +1046,7 @@
             }
         }
 
+        // Precise unscaled vector focus mapping for centering nodes without rendering bugs
         function zoomToNode(nodeId, alignTop = false) {
             const workspace = document.getElementById('canvas-workspace');
             const mover = document.getElementById('canvas-mover');
@@ -957,24 +1055,38 @@
             if (!workspace || !mover || !el) return;
             if (state.viewMode !== 'tree') return;
 
-            const viewRect = workspace.getBoundingClientRect();
-            const moverRect = mover.getBoundingClientRect();
-            const elRect = el.getBoundingClientRect();
-            
+            // Step 1: Force zoom to 1.0 to avoid complex project distortion bugs
             state.zoom = 1.0;
-            
-            const localX = (elRect.left + elRect.width / 2 - moverRect.left) / state.zoom;
-            state.pan.x = (viewRect.width / 2) - (localX * state.zoom);
-            
-            if (alignTop) {
-                const localYTop = (elRect.top - moverRect.top) / state.zoom;
-                state.pan.y = 40 - (localYTop * state.zoom);
-            } else {
-                const localYCenter = (elRect.top + elRect.height / 2 - moverRect.top) / state.zoom;
-                state.pan.y = (viewRect.height / 2) - (localYCenter * state.zoom);
-            }
-            
             updateCanvasTransform();
+
+            // Step 2: Recalculate offsets in next requestFrame, guaranteeing flawless centering alignment
+            requestAnimationFrame(() => {
+                const viewRect = workspace.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
+
+                if (viewRect.width === 0 || elRect.width === 0) return;
+
+                const viewCenterX = viewRect.left + viewRect.width / 2;
+                const viewCenterY = viewRect.top + viewRect.height / 2;
+
+                const elCenterX = elRect.left + elRect.width / 2;
+                const elCenterY = elRect.top + elRect.height / 2;
+
+                // Shift offsets directly
+                const deltaX = viewCenterX - elCenterX;
+                let deltaY = 0;
+
+                if (alignTop) {
+                    deltaY = (viewRect.top + 80) - elRect.top;
+                } else {
+                    deltaY = viewCenterY - elCenterY;
+                }
+
+                state.pan.x += deltaX;
+                state.pan.y += deltaY;
+
+                updateCanvasTransform();
+            });
         }
 
         function ensureNodeIsVisible(nodeId) {
@@ -999,7 +1111,7 @@
                     const matchesName = p.name.toLowerCase().includes(state.searchQuery);
                     const matchesDept = p.department.toLowerCase().includes(state.searchQuery);
                     const matchesRole = p.role && p.role.toLowerCase().includes(state.searchQuery);
-                    
+
                     if (matchesName || matchesDept || matchesRole) {
                         ensureNodeIsVisible(p.id);
                         if (!firstMatchId) {
@@ -1011,11 +1123,10 @@
             renderApp();
 
             if (firstMatchId && state.viewMode === 'tree') {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        zoomToNode(firstMatchId);
-                    });
-                });
+                // Instantly snaps viewport on targeted match node
+                setTimeout(() => {
+                    zoomToNode(firstMatchId);
+                }, 100);
             }
         }
 
@@ -1037,9 +1148,11 @@
             }
 
             // Compact layout width: w-52 (208px) instead of w-64
+            // Dims unrelated cards beautifully during search (opacity-30) and applies `.search-match-pulse` on active match
             const cardClasses = `org-node-card cursor-pointer transition-all duration-300 transform hover:-translate-y-1 w-52 bg-white rounded-xl shadow-md hover:shadow-xl border-2 p-3 flex flex-col items-center text-center relative z-10
                 ${isSelected ? 'border-escblue ring-4 ring-lightblue/20' : 'border-lightgray/25'}
-                ${isMatched ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-100' : ''}
+                ${isMatched ? 'search-match-pulse bg-amber-50/70 border-amber-400 ring-2' : ''}
+                ${state.searchQuery && !isMatched ? 'opacity-30 scale-95 blur-[0.3px]' : ''}
             `;
 
             let nodeHtml = `
@@ -1121,21 +1234,6 @@
             return nodeHtml;
         }
 
-        function compareNames(a, b) {
-            const getNames = (p) => {
-                const parts = p.name.trim().split(/\s+/);
-                const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-                const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
-                return { last: last.toLowerCase(), first: first.toLowerCase() };
-            };
-            const na = getNames(a);
-            const nb = getNames(b);
-            if (na.last !== nb.last) {
-                return na.last.localeCompare(nb.last);
-            }
-            return na.first.localeCompare(nb.first);
-        }
-
         function renderListCard(p) {
             let supervisorName = "N/A";
             if (p.supervisor) {
@@ -1176,13 +1274,19 @@
 
                 if (roots.length > 0) {
                     canvasMover.innerHTML = `
-                        <div class="flex flex-col items-center space-y-10">
+                        <!-- Infinite Dotted Canvas Grid Background Layer -->
+                        <div class="absolute pointer-events-none" style="top: -10000px; left: -10000px; width: 20000px; height: 20000px; background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 32px 32px; opacity: 0.55; z-index: 0;"></div>
+                        
+                        <!-- Dynamic SVG Lines Container -->
+                        <svg id="svg-connections" class="absolute inset-0 pointer-events-none w-full h-full z-10"></svg>
+                        
+                        <div class="flex flex-col items-center space-y-10 relative z-20">
                             ${roots.map(root => generateTreeHtml(root, childrenMap)).join('')}
                         </div>
                     `;
                 } else {
                     canvasMover.innerHTML = `
-                        <div class="text-center py-20 bg-white rounded-2xl border border-slate-200 p-8 shadow-md max-w-sm">
+                        <div class="text-center py-20 bg-white rounded-2xl border border-slate-200 p-8 shadow-md max-w-sm relative z-20">
                             <i class="fa-solid fa-circle-exclamation text-lightgray text-4xl mb-3"></i>
                             <h3 class="font-bold text-navy">No Top Supervisor Found</h3>
                             <p class="text-xs text-medgray mt-2 leading-relaxed">
@@ -1255,6 +1359,9 @@
             }
 
             updateProfileInspector();
+            
+            // Re-render paths dynamically matching nested heights after canvas layout modifications
+            setTimeout(drawLines, 80);
         }
 
         // Expanded Sidebar Profile updater
@@ -1367,11 +1474,10 @@
             }
 
             if (state.viewMode === 'tree') {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        zoomToNode(nodeId);
-                    });
-                });
+                // Wait for DOM layout pass to compute accurate card rect locations
+                setTimeout(() => {
+                    zoomToNode(nodeId);
+                }, 100);
             }
         }
 
@@ -1420,6 +1526,57 @@
             }
 
             renderApp();
+        }
+
+        // SVG Connector Line Renderer matching collapsed statuses
+        function drawLines() {
+            const svg = document.getElementById('svg-connections');
+            if (!svg || state.viewMode !== 'tree') return;
+            svg.innerHTML = '';
+
+            const mover = document.getElementById('canvas-mover');
+            if (!mover) return;
+
+            const moverRect = mover.getBoundingClientRect();
+            const scale = state.zoom;
+
+            state.people.forEach(p => {
+                const childId = p.id;
+                const supervisorId = p.supervisor;
+
+                if (!supervisorId) return;
+                
+                const card = document.getElementById(`node-card-${childId}`);
+                const parentCard = document.getElementById(`node-card-${supervisorId}`);
+
+                if (!card || !parentCard) return;
+
+                const cardRect = card.getBoundingClientRect();
+                const parentRect = parentCard.getBoundingClientRect();
+
+                // Calculate local layout coordinates offset
+                const startX = ((parentRect.left + parentRect.width / 2) - moverRect.left) / scale;
+                const startY = (parentRect.bottom - moverRect.top) / scale;
+
+                const endX = ((cardRect.left + cardRect.width / 2) - moverRect.left) / scale;
+                const endY = (cardRect.top - moverRect.top) / scale;
+
+                let pathData = '';
+                if (state.layoutMode === 'vertical') {
+                    const midY = startY + (endY - startY) / 2;
+                    pathData = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+                } else {
+                    const midX = startX + (endX - startX) / 2;
+                    pathData = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('stroke', '#898B8B');
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                svg.appendChild(path);
+            });
         }
 
         async function fetchWithTimeout(url, options = {}, timeout = 3500) {
@@ -1498,7 +1655,14 @@
                 }
 
                 state.people = parsed;
-                state.collapsed = {};
+                
+                // Open collapsed on load: Populate collapsed map with all supervisors
+                const supervisors = parsed.filter(p => parsed.some(child => child.supervisor === p.id));
+                const freshMap = {};
+                supervisors.forEach(s => {
+                    freshMap[s.id] = true;
+                });
+                state.collapsed = freshMap;
 
                 if (badge) {
                     badge.className = "text-[10px] font-extrabold text-emerald-600 uppercase flex items-center space-x-1";
@@ -1516,7 +1680,8 @@
                     state.selectedId = topLevelPersonId;
                     renderApp(); 
                     setTimeout(() => {
-                        zoomToNode(topLevelPersonId, true);
+                        // Center perfectly on the main root-level person (alignTop = false)
+                        zoomToNode(topLevelPersonId, false);
                     }, 350); 
                 }
             } catch (err) {
@@ -1642,6 +1807,7 @@
                 const phoneVal = fetchVal(phoneIdx, 'N/A');
                 const rawPhotoUrl = fetchVal(photoIdx, '');
                 
+                // Safely resolve Google Drive images using corrected local parameter reference 'rawPhotoUrl'
                 const formattedPhotoUrl = convertGoogleDriveUrl(rawPhotoUrl);
 
                 return {
